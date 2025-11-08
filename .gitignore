@@ -67,6 +67,8 @@ output/*.db-journal
 # CSV exports (usually too many to track)
 output/*.csv
 MASTER_README.md
+AI_INTEGRATION_GUIDE.md
+gemini_integration.py
 
 # ML models (if large)
 *.joblib
