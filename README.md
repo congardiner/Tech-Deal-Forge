@@ -1,8 +1,7 @@
 # Tech Deal Forge - Streamlit Dashboard
 🔥 **Real-time tech deals aggregator and price tracker**
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-url.streamlit.app)
-
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
 ## Features
 -  **Price History Tracking** - Track deal prices over time
 -  **Price Drop Alerts** - See the biggest discounts
@@ -11,7 +10,7 @@
 -  **Multi-Source Aggregation** - SlickDeals, Best Buy, and more
 
 ## 🚀 Live Demo
-Visit the live dashboard: [Tech Deal Forge](https://your-app-url.streamlit.app)
+Visit the live dashboard: [Tech Deal Forge](https://tech-deal-forge-dashboard.streamlit.app/)
 
 ## Local Installation
 
