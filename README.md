@@ -3,17 +3,17 @@
 
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-url.streamlit.app)
 
-## 🎯 Features
-- 📊 **Price History Tracking** - Track deal prices over time
-- 🔥 **Price Drop Alerts** - See the biggest discounts
-- 📈 **Analytics Dashboard** - Interactive charts and insights
-- 🤖 **AI Predictions** - ML-powered deal quality scoring
-- 🏷️ **Multi-Source Aggregation** - SlickDeals, Best Buy, and more
+## Features
+-  **Price History Tracking** - Track deal prices over time
+-  **Price Drop Alerts** - See the biggest discounts
+-  **Analytics Dashboard** - Interactive charts and insights
+-  **AI Predictions** - ML-powered deal quality scoring
+-  **Multi-Source Aggregation** - SlickDeals, Best Buy, and more
 
 ## 🚀 Live Demo
 Visit the live dashboard: [Tech Deal Forge](https://your-app-url.streamlit.app)
 
-## 📦 Local Installation
+## Local Installation
 
 ```bash
 # Clone the repository
@@ -27,10 +27,10 @@ pip install -r requirements.txt
 streamlit run streamlit_dashboard.py
 ```
 
-## 🗄️ Data Sources
+## Data Sources
 The dashboard displays aggregated data from:
-- SlickDeals (Tech category)
-- Best Buy (Featured deals)
+- SlickDeals (Open Global Community Forum)
+- Best Buy (Featured Consumer Technology Deals)
 - Historical price tracking (SQLite database)
 
 ## 🛠️ Tech Stack
@@ -41,7 +41,7 @@ The dashboard displays aggregated data from:
 - **Web Scraping:** Botasaurus + BeautifulSoup
 - **ML:** scikit-learn (optional)
 
-## 📊 Project Structure
+## Project Structure
 ```
 Senior-Project-Tech-Deal-Forge/
 ├── streamlit_dashboard.py      # Main dashboard app
@@ -62,4 +62,4 @@ The dashboard displays cached data that is refreshed every 60 seconds. To manual
 MIT License - See LICENSE file for details
 
 ## 👨‍💻 Author
-Created as a Senior Project by [Your Name]
+Created as a Senior Project by Conner Gardiner
