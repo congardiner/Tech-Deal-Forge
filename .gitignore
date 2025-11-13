@@ -75,7 +75,6 @@ quick_upload.py
 ml_integration.py
 
 # ML models (if large)
-*.joblib
 *.pkl
 *.h5
 
