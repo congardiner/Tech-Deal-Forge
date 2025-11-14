@@ -15,6 +15,8 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
+import re
+import urllib.parse
 
 # NOTE: Issue resolved with path not being resolved. (Local Instance)
 
@@ -26,14 +28,81 @@ st.set_page_config(
     page_title="Deal Forge",           
     page_icon="🔨",                     
     layout="wide",                     
-    initial_sidebar_state="collapsed"  # Hide sidebar since we're not using it
+    initial_sidebar_state="collapsed"  
 )
 
-# ===== SESSION STATE INITIALIZATION =====
-# Initialize all session state variables upfront to prevent re-queries and ghosting
 
-if 'theme_mode' not in st.session_state:
-    st.session_state.theme_mode = 'dark'
+
+# -- Category Normalization --
+def normalize_category(raw) -> str:
+    """Normalize noisy/miscategorized category strings into readable labels.
+    Handles glued prefixes (e.g., 'dealsunlocked'), query tails
+    (e.g., '...filters Rating Frontpage'), punctuation, and pluralization.
+    """
+    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+        return "Other"
+
+    s = str(raw)
+    s = urllib.parse.unquote(s)
+    # Drop query/fragment of a query from the search state
+    s = s.split('?', 1)[0].split('#', 1)[0]
+    # Normalize separators
+    s = re.sub(r"[\/_>|-]+", " ", s).strip().lower()
+    # Remove leading 'deal'/'deals' even if glued or stitched together otherwise.
+    s = re.sub(r"^(deals?|deal)(?=[a-z])", "", s)
+    # Drop everything after the word 'filters' if present
+    s = re.sub(r"\bfilters.*$", "", s)
+    # Tokenize and remove stopwords/noise
+    tokens = re.findall(r"[a-z]+", s)
+    stop = {
+        "deal", "deals", "filter", "filters", "rating", "frontpage", "popular",
+        "best", "hot", "new", "today", "this", "week", "top", "discount", "sale", "sales",
+        "the", "and", "for", "of"
+    }
+    tokens = [t for t in tokens if t not in stop]
+    if not tokens:
+        return "Other"
+    phrase = " ".join(tokens)
+
+    # Canonical forms for common variations
+    canon = {
+        # Displays
+        "tv": "TVs", "tvs": "TVs", "tv deals": "TVs",
+        "video card": "Video Cards", "video cards": "Video Cards", "graphics card": "Graphics Cards",
+        # Phones
+        "cell phone": "Cell Phones", "cell phones": "Cell Phones",
+        "unlocked phone": "Unlocked Phones", "unlocked phones": "Unlocked Phones",
+        "smartwatch": "Smartwatches", "smart watch": "Smartwatches", "smart watches": "Smartwatches",
+        # Computers
+        "laptop": "Laptops", "laptops": "Laptops", "laptop deals": "Laptops",
+        "desktop": "Desktops", "desktops": "Desktops", "desktop computers": "Desktops",
+        "computer parts": "Computer Parts", "computers parts": "Computer Parts",
+        # Components
+        "cpu": "CPUs", "cpus": "CPUs", "gpu": "GPUs", "gpus": "GPUs",
+        "motherboard": "Motherboards", "motherboards": "Motherboards",
+        "memory": "Memory", "ram": "Memory",
+        # Audio
+        "headphone": "Headphones", "headphones": "Headphones", "wireless headphones": "Wireless Headphones",
+        # General
+        "tablet": "Tablets", "tablets": "Tablets", "software": "Software",
+        "gaming": "Gaming", "electronics": "Electronics", "tech": "Tech", "tech deals": "Tech",
+        "drives": "Drives", "education": "Education", "servers": "Servers",
+        "video card deals": "Video Cards"
+    }
+    if phrase in canon:
+        return canon[phrase]
+
+    # Title-case fallback, keep specific acronyms uppercased
+    title = phrase.title()
+    title = re.sub(r"\bCpu(s)?\b", r"CPU\1", title)
+    title = re.sub(r"\bGpu(s)?\b", r"GPU\1", title)
+    title = re.sub(r"\bTv(s)?\b", r"TV\1", title)
+    return title
+
+# SESSION STATE INITIALIZATION
+# Initialize all session state variables upfront to prevent re-queries and ghosting
+# NOTE: this was a major learning point for me while building this app!
+
 
 # Data caching in session state (load once per session)
 if 'df_loaded' not in st.session_state:
@@ -54,32 +123,9 @@ if 'date_range' not in st.session_state:
 if 'row_limit' not in st.session_state:
     st.session_state.row_limit = 10000
 
-# Apply theme CSS based on mode
-if st.session_state.theme_mode == 'light':
-    st.markdown("""
-    <style>
-        .stApp {
-            background-color: #ffffff;
-            color: #000000;
-        }
-        .stMarkdown, .stText {
-            color: #000000 !important;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-    <style>
-        .stApp {
-            background-color: #0e1117;
-            color: #fafafa;
-        }
-    </style>
-    """, unsafe_allow_html=True)
-
 
 # NOTE: Implemented my logo after creating it using Canva
-st.image("images/deal-forge-logo/tech_deal_forge_logo.png", width=200)
+st.image("images/deal-forge-logo/tech_deal_forge_logo.png", width=150)
 
 
 st.title("The Tech Deal Forge")               
@@ -90,19 +136,15 @@ st.subheader("Empowering Data-Driven Decisions for Tech-Related Deals")
 header_col1, header_col2 = st.columns([6, 1])
 with header_col1:
     st.markdown("**Welcome to Deal Forge!**")  
-    st.caption("The data for this website is compiled from various sources with the intent to streamline the process of being informed while purchasing into related consumer product deals. Provision of Deal Insights are provided as a free service, and do not constitute official financial advice. Happy Deal Hunting!")
-with header_col2:
-    if st.button("🌙 Dark" if st.session_state.theme_mode == 'dark' else "☀️ Light", key="theme_toggle"):
-        st.session_state.theme_mode = 'light' if st.session_state.theme_mode == 'dark' else 'dark'
-        st.rerun()
-
+    st.caption("The data for this website is compiled from various sources with the intent to streamline the process of being informed while purchasing into related consumer product deals. Provision of Deal Insights are provided as a free service, and do not constitute official financial advice.")
+    st.caption("Happy Deal Hunting!")
 st.markdown("---")
 
 
 # NOTE: something that I learned, st.cache_data is the way to go for making streamlit super fast to use!
 # @st.cache_data decorator prevents reloading data on every interaction
-# This makes your app MUCH faster
 
+# NOTE: this hasn't been implemented yet ... Still a work in progress, concerns with viability and security.
 # Initialize database for cloud deployment (if needed)
 if not DB_PATH.exists():
     # Removed try/except: perform a guarded import and fail fast with clear instructions.
@@ -134,6 +176,9 @@ def load_deals_data(row_limit: int = 10000):
     
     if 'scraped_at' in df.columns:
         df['scraped_at'] = pd.to_datetime(df['scraped_at'])
+    # Create cleaned category column for consistent filtering/grouping
+    if 'category' in df.columns:
+        df['category_clean'] = df['category'].apply(normalize_category)
     
     return df
 
@@ -156,7 +201,7 @@ if df.empty:
 
 
 # NOTE: This is my main layout and the initial gate keeping to my columnns and overall design philosophy.
-# ===== MAIN METRICS ROW =====
+# MAIN METRICS ROW 
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
@@ -180,7 +225,10 @@ with col4:
 
 st.markdown("---")
 
-# ===== UNIFIED FILTER SECTION (replaces sidebar) =====
+# UNIFIED FILTER SECTION
+# NOTE: I opted to just have an all-in-one filter section at the top for simplicity
+# as otherwise the widgets can overlay one another and make it so that items don't load or adverse ghosting occurs otherwise.
+
 st.subheader("🔍 Search & Filter Deals")
 st.caption("Filters apply to all tabs below. Adjust criteria to narrow your search.")
 
@@ -199,15 +247,15 @@ with filter_col1:
 
 with filter_col2:
     # Category multiselect
-    categories = df['category'].unique().tolist()
-    if not st.session_state.selected_categories:
-        # Default to first 5 categories or all if fewer
-        st.session_state.selected_categories = categories[:5] if len(categories) > 5 else categories
+    if 'category_clean' in df.columns:
+        categories = sorted([c for c in df['category_clean'].dropna().unique().tolist() if c])
+    else:
+        categories = sorted([c for c in df.get('category', pd.Series([], dtype=str)).dropna().unique().tolist() if c])
     
     selected_categories = st.multiselect(
         "📂 Categories",
         options=categories,
-        default=st.session_state.selected_categories,
+        default=st.session_state.selected_categories,  # empty by default
         help="Select one or more categories",
         key="main_category_select"
     )
@@ -223,7 +271,9 @@ with filter_col3:
         key="main_row_limit_select"
     )
     
-    # Refresh button
+    # NOTE: This ensures that the ghosting effect that is common within streamlit isn't continually replicated across sessions, as this has been a redundant issue in scaling out this serviceable site. 
+    # EDIT NOTE: no further issues to address in this respect after testing and using caching to improve performance.
+    
     if st.button("🔄 Refresh", help="Reload data from database", key="main_refresh_button"):
         # Clear session state data
         st.session_state.df_loaded = None
@@ -246,16 +296,23 @@ with filter_col4:
         min_price_data = float(df['price_numeric'].min())
         max_price_data = float(df['price_numeric'].max())
         
-        price_range = st.slider(
-            "💰 Price Range ($)",
-            min_value=0.0,
-            max_value=max_price_data * 1.1,
-            value=(st.session_state.min_price, min(st.session_state.max_price, max_price_data)),
-            step=10.0,
-            key="main_price_slider"
-        )
-        st.session_state.min_price = price_range[0]
-        st.session_state.max_price = price_range[1]
+        # Handle case where min = max (only one price in dataset)
+        if min_price_data == max_price_data:
+            st.info(f"💰 Single Price: ${min_price_data:.2f}")
+            price_range = (min_price_data, max_price_data)
+            st.session_state.min_price = min_price_data
+            st.session_state.max_price = max_price_data
+        else:
+            price_range = st.slider(
+                "💰 Price Range ($)",
+                min_value=0.0,
+                max_value=max_price_data * 1.1,
+                value=(st.session_state.min_price, min(st.session_state.max_price, max_price_data)),
+                step=10.0,
+                key="main_price_slider"
+            )
+            st.session_state.min_price = price_range[0]
+            st.session_state.max_price = price_range[1]
     else:
         st.info("No price data available")
         price_range = (0, 0)
@@ -282,12 +339,13 @@ with filter_col5:
 with filter_col6:
     st.caption(f"**Loaded:** {st.session_state.load_timestamp.strftime('%H:%M:%S') if st.session_state.load_timestamp else 'N/A'}")
     st.caption(f"**Rows:** {len(df):,}")
-    if st.session_state.search_query or selected_categories != categories:
+    if st.session_state.search_query or bool(st.session_state.selected_categories):
         st.caption("🔍 *Filters active*")
 
 st.markdown("---")
 
-# ===== APPLY ALL FILTERS TO CREATE filtered_df (single source of truth) =====
+
+# NOTE: APPLIES all filters to create filtered_df (single source of truth) - to ensure that categories are consistent across all tabs
 filtered_df = df.copy()
 
 # Apply keyword search
@@ -297,7 +355,8 @@ if st.session_state.search_query:
 
 # Apply category filter
 if st.session_state.selected_categories:
-    filtered_df = filtered_df[filtered_df['category'].isin(st.session_state.selected_categories)]
+    col_to_use = 'category_clean' if 'category_clean' in filtered_df.columns else 'category'
+    filtered_df = filtered_df[filtered_df[col_to_use].isin(st.session_state.selected_categories)]
 
 # Apply price range
 if price_range[0] > 0 or price_range[1] < max_price_data:
@@ -512,8 +571,14 @@ with tab2:
     st.subheader("📈 Deal vs Category Average")
     st.caption("Compare individual deal prices to their category average (using filtered data)")
     
-    # Calculate category averages from filtered_df
-    category_avg = filtered_df[filtered_df['price_numeric'].notna()].groupby('category')['price_numeric'].agg(['mean', 'count']).reset_index()
+    # Calculate category averages from filtered_df using cleaned categories
+    group_col = 'category_clean' if 'category_clean' in filtered_df.columns else 'category'
+    category_avg = (
+        filtered_df[filtered_df['price_numeric'].notna()]
+        .groupby(group_col)['price_numeric']
+        .agg(['mean', 'count'])
+        .reset_index()
+    )
     category_avg.columns = ['category', 'avg_price', 'deal_count']
     category_avg = category_avg[category_avg['deal_count'] >= 3]  # Only categories with 3+ deals
     
@@ -537,8 +602,9 @@ with tab2:
         selected_cat = None
     
     if selected_cat:
-        # Get deals in this category from filtered_df
-        cat_deals = filtered_df[(filtered_df['category'] == selected_cat) & (filtered_df['price_numeric'].notna())].copy()
+        # Get deals in this category from filtered_df (using cleaned column when present)
+        group_col = 'category_clean' if 'category_clean' in filtered_df.columns else 'category'
+        cat_deals = filtered_df[(filtered_df[group_col] == selected_cat) & (filtered_df['price_numeric'].notna())].copy()
         cat_avg_price = category_avg[category_avg['category'] == selected_cat]['avg_price'].iloc[0]
         
         # Sort by date
@@ -805,7 +871,11 @@ with tab3:
                 
                 with col1:
                     st.markdown(f"**{row['title'][:60]}...**")
-                    st.caption(f"🏪 {row['website']} | 📂 {row['category']}")
+                    try:
+                        cat_disp = normalize_category(row.get('category')) if 'category' in row else ''
+                    except Exception:
+                        cat_disp = row.get('category', '') if isinstance(row, dict) else ''
+                    st.caption(f"🏪 {row['website']} | 📂 {cat_disp}")
                 
                 with col2:
                     st.metric(
@@ -907,8 +977,24 @@ with tab5:
     st.info(f"Found {len(valid_df)} deals with prices in your filtered results")
 
     if len(valid_df) > 0:
-        # Optional cap for performance
-        max_rows = st.slider("Max rows to score", min_value=500, max_value=int(len(valid_df)), value=min(5000, int(len(valid_df))), step=500, key="ml_max_rows")
+        # Row selection / performance cap
+        total_rows = int(len(valid_df))
+        if total_rows <= 500:
+            # Avoid Streamlit slider error when min == max; just score all rows
+            st.info(f"Scoring all {total_rows} deals (slider disabled: not enough rows for range)")
+            max_rows = total_rows
+        else:
+            # Dynamic slider: allow selecting between 500 and total_rows
+            default_value = min(5000, total_rows)
+            step_size = 500 if total_rows > 2000 else 100
+            max_rows = st.slider(
+                "Max rows to score",
+                min_value=500,
+                max_value=total_rows,
+                value=default_value,
+                step=step_size,
+                key="ml_max_rows"
+            )
         valid_df = valid_df.head(max_rows)
 
         with st.spinner(f"Predicting {len(valid_df)} deals..."):
@@ -980,7 +1066,8 @@ st.header("🔍 Deal Search Results")
 st.write(f"**Found {len(filtered_df)} deals** (filtered from {len(df)} total)")
 
 # Select which columns to show
-display_columns = ['title', 'price', 'category', 'scraped_at']
+# Prefer cleaned category if present
+display_columns = ['title', 'price', 'category_clean', 'scraped_at'] if 'category_clean' in filtered_df.columns else ['title', 'price', 'category', 'scraped_at']
 available_columns = [col for col in display_columns if col in filtered_df.columns]
 
 # Show data table
@@ -1018,15 +1105,15 @@ if not filtered_df.empty and available_columns:
     start_idx = (page_number - 1) * page_size
     end_idx = start_idx + page_size
     
-    # Display the data slice
+    # NOTE: Displays the data slice as intended, no issues to report after edge cases were handled.
     st.dataframe(
         display_df.iloc[start_idx:end_idx],
         hide_index=True
     )
     
-    # ================================
-    # FILE DOWNLOADS
-    # ===================================
+
+    # FILE DOWNLOADS for my csv and json outputs. 
+    # NOTE: all issues with missing values have been properly handled, no further items to make note of. 
     
     st.subheader("📁 Directly Download Data")
     
@@ -1080,3 +1167,28 @@ with col2:
 
 with col3:
     st.write(f"**Total Deals:** {len(df)} | **Filtered:** {len(filtered_df)}")
+
+# NOTE: Footer Section
+# Utilized a few assets from github including the stock image as seen within my streamlit site, all rights are reserved for Github in the usage of this image, with copyright belonging to them.
+# All other comments and included textual context is my own accord and making, just leaving a note of that here though for clarity.
+
+st.markdown("---")
+st.markdown("""
+<div style="text-align: center; padding: 26px; background-color: rgba(0,0,0,0.05); border-radius: 10px; margin-top: 20px;">
+    <p style="font-size: 18px; margin: 16px 0;">
+        <strong>Tech Deal Forge</strong> - Empowering Data-Driven Decisions
+    </p>
+    <p style="font-size: 16px; margin: 16px 0;">
+        <a href="https://github.com/congardiner/Senior-Project---Tech-Deal-Forge" target="_blank" style="text-decoration: none; color: #0366d6;">
+            <img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" width="26" style="vertical-align: middle; margin-right: 8px;">
+            <span style="text-decoration: underline;">View on GitHub</span>
+        </a>
+    </p>
+    <p style="font-size: 16px; color: #666; margin: 12px 0;">
+        © 2025 Tech Deal Forge | Licensed under the MIT License
+    </p>
+    <p style="font-size: 16px; color: #888; margin: 5px 0;">
+        This tool is provided for informational purposes only and does not constitute financial advice.
+    </p>
+</div>
+""", unsafe_allow_html=True)

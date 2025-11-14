@@ -73,6 +73,7 @@ colab_training_script.py
 init_cloud_db.py
 quick_upload.py
 ml_integration.py
+bestbuy_webscraper.py
 
 # ML models (if large)
 *.pkl

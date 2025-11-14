@@ -4,10 +4,10 @@
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
 ## Features
 -  **Price History Tracking** - Track deal prices over time
--  **Price Drop Alerts** - See the biggest discounts
+-  **Price Drop Alerts** - See the biggest discounts on tech products (by keywords & categories)
 -  **Analytics Dashboard** - Interactive charts and insights
 -  **AI Predictions** - ML-powered deal quality scoring
--  **Multi-Source Aggregation** - SlickDeals, Best Buy, and more
+-  **Multi-Source Aggregation** - SlickDeals & Best Buy
 
 ## 🚀 Live Demo
 Visit the live dashboard: [Tech Deal Forge](https://tech-deal-forge-dashboard.streamlit.app/)
@@ -57,8 +57,16 @@ The dashboard displays cached data that is refreshed every 60 seconds. To manual
 1. Run scrapers: `python run_all_scrapers.bat`
 2. Or use the "🔄 Refresh Data" button in the sidebar
 
+## Limitations
+- Data relevance depends on my webscraper(s) and their intake frequencies and may not reflect the 'best' deals in real-time, as this is only utilizing aggregations from two different sources, over a span of several months at the time of writing (Q4, 2025).
+- ML predictions are based on historical data and may not always accurately predict future deal quality, which is why the overall deal score is a combination of both the ML prediction and the current discount percentage; with this in mind, any results or recommendations as represented are not to be taken as financial advice rather, this is an attempt to streamline the deal discovery process for all users, in a free and open usage manner. 
+- There is no user authentication or personalization features at this time, this a feature that is planned for future development, and will be added in later versions.
+- Feel free to contribute or suggest improvements, as this is aimed to become an open-source project for the community once proper testing and documentation is complete.
+
+
 ## 📝 License
 MIT License - See LICENSE file for details
+- If you use this project or any part of it, please give appropriate credit, see LICENSE file for details.
 
 ## 👨‍💻 Author
 Created as a Senior Project by Conner Gardiner

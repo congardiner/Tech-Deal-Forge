@@ -34,6 +34,10 @@ CATEGORY_URLS = [
     "https://slickdeals.net/deals/smart-watch/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=",
     "https://slickdeals.net/deals/audio/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=",
     "https://slickdeals.net/tv-deals/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=",
+    "https://slickdeals.net/cell-phone-deals/",
+    "https://slickdeals.net/computer-deals/?filters%5Brating%5D%5B%5D=frontpage&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=",
+    "https://slickdeals.net/deals/cellphone-providers/?filters%5Brating%5D%5B%5D=frontpage&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=",
+    "https://slickdeals.net/deals/education/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D="
 ]
 
 
