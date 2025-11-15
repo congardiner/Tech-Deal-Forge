@@ -133,6 +133,3 @@ The Tech Deal Forge is a free to use service and platform, the ideal here would 
 ## 📝 License
 MIT License - See LICENSE file for details
 - If you use this project or any part of it, please give appropriate credit, see LICENSE file for details.
-
-## 👨‍💻 Author
-Created as a Senior Project by Conner Gardiner
