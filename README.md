@@ -106,9 +106,16 @@ Scrapers run at scheduled intervals, so:
   - Rate limiting and responsible usage are enforced
 
 5. **Machine Learning**
-- ML predictions are based on historical data and may not always accurately predict future deal quality, which is why the overall deal score is a combination of both the ML prediction and the current discount percentage; with this in mind, any results or recommendations as represented are not to be taken as financial advice rather, this is an attempt to streamline the deal discovery process for all users, in a free and open usage manner.
-  -    
 
+- ML predictions are based on historical data and may not always accurately predict future deal quality, which is why the overall deal score is a combination of both the ML prediction and the current discount percentage; with this in mind, any results or recommendations as represented are not to be taken as financial advice rather, this is an attempt to streamline the deal discovery process for all users, in a free and open usage manner.
+  - It does not incorporate advanced feature engineering (at least not yet).
+  - It is intended to provide guidance on evaluating 'deal worthiness' but not financial advice.
+
+6. **UI of the Tech Forge is Simple, Not a Full Consumer Application**
+
+- The Streamlit interface is clean and functional but:
+  - It is not a mobile-first design (issues could occur in scaling and responsiveness)
+  - It does not have deep personalization features (yet, this is an active work in progress)
 
 ## **Acknowledged Community Requests**
 - Feedback is always encouraged and accepted, if you have any encountered issues, please feel free to open a request and statement in 'Code Issues' as provided by Github, in addition to this, if there is a requested feature or area that could be improved for enhancing the user experience send it my way!
