@@ -22,31 +22,6 @@ Tech Deal Forge reduces the time, stress, and uncertainty involved in tech-deal 
 - Anyone looking for a central hub to evaluate tech pricing quickly without needing to 'churn' the internet 
 - Users who want personalized, data-driven insights into whether a product is a “good deal”
 
-## Limitations
-
-1. **Limited Data Sources**
-- My database is limited to output rendered and provided by my webscrapers in the timeframe of this project, as a result of this, I am currently unable to provide a complete and accurate capture of *all* historical price trends for *all* tech-related consumer products.
-  - While the project aggregates data from multiple sites, it does not cover every retailer or every type of tech product.
-  - The insights are only as comprehensive as the platforms being scraped.
-
- 2. **Scraper Reliability & Website Changes**
-- Web-scraping depends on website structure and accessibility:
-  - Any layout changes on a dynamic website can break the webscrapers / any additional that are added to the project.
-  - Certain sites may restrict access via robots.txt
-  - CAPTCHAs or rate limits may cause inconsistent results
-   - The project reflects best-effort data collection, not enterprise-level scraping reliability.
-3. **Not a Real-Time Price Tracker**
-- This is not a live, instantly updated price-monitoring service.
-Scrapers run at scheduled intervals, so:
-  - Prices may lag behind real-time market changes.
-  - Sudden promotions or flash deals may not always be captured immediately.
-
-4. **Ethical & Legal Scraping Boundaries**
-- The project follows ethical scraping principles, but:
-  - It only collects publicly accessible data
-  - It cannot bypass access restrictions
-  - Rate limiting and responsible usage are enforced
-
 
 ## Features
 -  **Price History Tracking** - Track deal prices over time
@@ -56,7 +31,7 @@ Scrapers run at scheduled intervals, so:
 -  **Multi-Source Aggregation** - SlickDeals & Best Buy
 
 ## 🚀 Live Demo
-Visit the live dashboard: [Tech Deal Forge](https://tech-deal-forge-dashboard.streamlit.app/)
+Visit the live dashboard: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
 
 ## Local Installation
 
@@ -103,12 +78,50 @@ The dashboard displays cached data that is refreshed every 60 seconds. To manual
 1. Run scrapers: `python run_all_scrapers.bat`
 2. Or use the "🔄 Refresh Data" button in the sidebar
 
-## Limitations
-- Data relevance depends on my webscraper(s) and their intake frequencies and may not reflect the 'best' deals in real-time, as this is only utilizing aggregations from two different sources, over a span of several months at the time of writing (Q4, 2025).
-- ML predictions are based on historical data and may not always accurately predict future deal quality, which is why the overall deal score is a combination of both the ML prediction and the current discount percentage; with this in mind, any results or recommendations as represented are not to be taken as financial advice rather, this is an attempt to streamline the deal discovery process for all users, in a free and open usage manner. 
-- There is no user authentication or personalization features at this time, this a feature that is planned for future development, and will be added in later versions.
-- Feel free to contribute or suggest improvements, as this is aimed to become an open-source project for the community once proper testing and documentation is complete.
+## Limitations of my Project & Disclaimers
 
+1. **Limited Data Sources**
+- My database is limited to output rendered and provided by my webscrapers in the timeframe of this project, as a result of this, I am currently unable to provide a complete and accurate capture of *all* historical price trends for *all* tech-related consumer products.
+  - While the project aggregates data from multiple sites, it does not cover every retailer or every type of tech product.
+  - Data relevance depends on my webscraper(s) and their intake frequencies and may not reflect the 'best' deals in real-time, as this is only utilizing aggregations from two different sources, over a span of several months at the time of writing (Q4, 2025).
+  - The insights are only as comprehensive as the platforms being scraped.
+
+ 2. **Scraper Reliability & Website Changes**
+- Web-scraping depends on website structure and accessibility:
+  - Any layout changes on a dynamic website can break the webscrapers / any additional that are added to the project.
+  - Certain sites may restrict access via robots.txt
+  - CAPTCHAs or rate limits may cause inconsistent results
+   - The project reflects best-effort data collection, not enterprise-level scraping reliability.
+     
+3. **Not a Real-Time Price Tracker**
+- This is not a live, instantly updated price-monitoring service.
+Scrapers run at scheduled intervals, so:
+  - Prices may lag behind real-time market changes.
+  - Sudden promotions or flash deals may not always be captured immediately.
+
+4. **Ethical & Legal Scraping Boundaries**
+- The project follows ethical scraping principles, but:
+  - It only collects publicly accessible data
+  - It cannot bypass access restrictions
+  - Rate limiting and responsible usage are enforced
+
+5. **Machine Learning**
+- ML predictions are based on historical data and may not always accurately predict future deal quality, which is why the overall deal score is a combination of both the ML prediction and the current discount percentage; with this in mind, any results or recommendations as represented are not to be taken as financial advice rather, this is an attempt to streamline the deal discovery process for all users, in a free and open usage manner.
+  -    
+
+
+## **Acknowledged Community Requests**
+- Feedback is always encouraged and accepted, if you have any encountered issues, please feel free to open a request and statement in 'Code Issues' as provided by Github, in addition to this, if there is a requested feature or area that could be improved for enhancing the user experience send it my way!
+
+#### **Features to Add**:
+- There is no user authentication or personalization features at this time, this a feature that is planned for future development, and will be added in later versions.
+- Cloud-Database Migration will take place on a future point in time as the service scales, as this will be necessary in order to keep the continuity of project alive and well.
+- Image(s) of specified items and products has been heavily requested, storage requirements currently restrict this addition, however, this is currently being researched for viable options. 
+
+## **Disclaimer** 
+
+The Tech Deal Forge is a free to use service and platform, the ideal here would be to create a open-source project that comprehensively can be maintained and built by community developers; to reiterate, this application does not promote, exchange, or receive any funding, backing, or servicing from vendors, suppliers, or sponsors of any sort.
+- Feel free to contribute or suggest improvements, as this is aimed to become an open-source project for the community once proper testing and documentation is complete.
 
 ## 📝 License
 MIT License - See LICENSE file for details
