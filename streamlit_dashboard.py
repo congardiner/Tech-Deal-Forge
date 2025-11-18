@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 import re
 import urllib.parse
+import numpy as np
 
 # NOTE: Issue resolved with path not being resolved. (Local Instance)
 
@@ -802,8 +803,12 @@ def get_price_drops_from_links(links: tuple):
     conn.close()
     return drops
 
-# ============ ML FEATURE PREPARATION (no try/except; sanitize inputs) ============
+# ============ ML FEATURE PREPARATION (24 features to match improved model) ============
 def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Prepare 24 features matching the improved ML model.
+    No reviews/ratings dependency - focuses on price, discount, temporal, and historical features.
+    """
     df2 = source_df.copy()
 
     # Ensure datetime
@@ -816,69 +821,83 @@ def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
     numeric_defaults = {
         'price_numeric': 0.0,
         'discount_percent': 0.0,
-        'rating': 3.5,
-        'reviews_count': 0,
     }
     for col, default in numeric_defaults.items():
         if col not in df2.columns:
             df2[col] = default
         df2[col] = pd.to_numeric(df2[col], errors='coerce').fillna(default)
 
-    # Website indicators
+    # Price-based features
+    df2['has_discount'] = (df2['discount_percent'] > 0).astype(int)
+    df2['discount_tier'] = pd.cut(df2['discount_percent'], bins=[0, 10, 25, 50, 100], 
+                                   labels=[1, 2, 3, 4]).astype(float).fillna(0)
+    df2['price_bucket'] = pd.cut(df2['price_numeric'], bins=[0, 50, 150, 500, 1500, np.inf], 
+                                  labels=[1, 2, 3, 4, 5]).astype(float).fillna(3.0)
+
+    # Website indicators (3 websites)
     website_series = df2.get('website')
     website_l = website_series.astype(str).str.lower() if website_series is not None else pd.Series([''] * len(df2))
     df2['website_bestbuy'] = website_l.str.contains('bestbuy', na=False).astype(int)
     df2['website_slickdeals'] = website_l.str.contains('slickdeals', na=False).astype(int)
+    df2['website_newegg'] = website_l.str.contains('newegg', na=False).astype(int)
 
-    # Category indicators
-    category_series = df2.get('category')
+    # Category indicators (5 categories)
+    category_series = df2.get('category_clean') if 'category_clean' in df2.columns else df2.get('category')
     cat_l = category_series.astype(str).str.lower() if category_series is not None else pd.Series([''] * len(df2))
-    df2['category_gaming'] = cat_l.str.contains('gam', na=False).astype(int)
-    df2['category_laptop'] = cat_l.str.contains('laptop', na=False).astype(int)
-    df2['category_monitor'] = cat_l.str.contains('monitor', na=False).astype(int)
+    df2['category_gaming'] = cat_l.str.contains('gaming|game|gpu|video card', na=False).astype(int)
+    df2['category_laptop'] = cat_l.str.contains('laptop|notebook', na=False).astype(int)
+    df2['category_monitor'] = cat_l.str.contains('monitor|display|tv', na=False).astype(int)
+    df2['category_electronics'] = cat_l.str.contains('electronics|tech|headphone|tablet', na=False).astype(int)
+    df2['category_computer_parts'] = cat_l.str.contains('cpu|motherboard|memory|drive|parts', na=False).astype(int)
 
-    # Temporal features
+    # Temporal features (5 features)
     dow = df2['scraped_at'].dt.dayofweek.fillna(0).astype(int)
     df2['day_of_week'] = dow
     df2['month'] = df2['scraped_at'].dt.month.fillna(1).astype(int)
     df2['is_weekend'] = dow.isin([5, 6]).astype(int)
+    df2['hour'] = df2['scraped_at'].dt.hour.fillna(12).astype(int)
+    df2['is_peak_hours'] = df2['hour'].isin([12, 18, 6]).astype(int)
 
-    # Relative price features per category
-    if 'category' in df2.columns and df2['category'].notna().any():
-        cat_group = df2.groupby('category')['price_numeric']
-        cat_avg = cat_group.transform('mean').replace(0, pd.NA)
-        cat_min = cat_group.transform('min').replace(0, pd.NA)
-        df2['price_vs_avg'] = (df2['price_numeric'] / cat_avg).fillna(1.0)
-        df2['price_vs_min'] = (df2['price_numeric'] / cat_min).fillna(1.0)
-    else:
-        df2['price_vs_avg'] = 1.0
-        df2['price_vs_min'] = 1.0
-
-    # Times seen (within current set as proxy)
+    # Historical price features (using link to match training script)
     if 'link' in df2.columns:
+        # Times seen
         df2['times_seen'] = df2.groupby('link')['link'].transform('count').fillna(1).astype(int)
+        
+        # Price statistics per link (matching training logic)
+        link_group = df2.groupby('link')['price_numeric']
+        price_mean = link_group.transform('mean').replace(0, 1e-6)
+        price_min = link_group.transform('min').replace(0, 1e-6)
+        price_max = link_group.transform('max')
+        
+        df2['price_vs_avg'] = (df2['price_numeric'] / price_mean).fillna(1.0)
+        df2['price_vs_min'] = (df2['price_numeric'] / price_min).fillna(1.0)
+        df2['price_range'] = (price_max - price_min).fillna(0.0)
+        df2['price_std'] = link_group.transform('std').fillna(0.0)
+        
+        # Recent trend (price change from previous scrape)
+        df2 = df2.sort_values(['link', 'scraped_at'])
+        df2['recent_trend'] = df2.groupby('link')['price_numeric'].diff().fillna(0.0)
     else:
         df2['times_seen'] = 1
-
-    # Price std per category (fallback 0) and a neutral recent_trend
-    if 'category' in df2.columns:
-        df2['price_std'] = df2.groupby('category')['price_numeric'].transform('std').fillna(0.0)
-    else:
+        df2['price_vs_avg'] = 1.0
+        df2['price_vs_min'] = 1.0
+        df2['price_range'] = 0.0
         df2['price_std'] = 0.0
-    df2['recent_trend'] = 0.0
+        df2['recent_trend'] = 0.0
 
+    # Feature list (24 features matching training script)
     feature_cols = [
-        'price_numeric', 'discount_percent', 'rating', 'reviews_count',
-        'website_bestbuy', 'website_slickdeals',
-        'category_gaming', 'category_laptop', 'category_monitor',
-        'day_of_week', 'month', 'is_weekend',
-        'price_vs_avg', 'price_vs_min', 'times_seen', 'price_std', 'recent_trend'
+        'price_numeric', 'discount_percent', 'has_discount', 'discount_tier', 'price_bucket',
+        'website_bestbuy', 'website_slickdeals', 'website_newegg',
+        'category_gaming', 'category_laptop', 'category_monitor', 'category_electronics', 'category_computer_parts',
+        'day_of_week', 'month', 'is_weekend', 'hour', 'is_peak_hours',
+        'price_vs_avg', 'price_vs_min', 'times_seen', 'price_std', 'price_range', 'recent_trend'
     ]
 
     # Ensure all features exist
     for c in feature_cols:
         if c not in df2.columns:
-            df2[c] = 0
+            df2[c] = 0.0
 
     X = df2[feature_cols].astype(float)
     return X
@@ -1028,7 +1047,7 @@ with tab5:
     # Model file input
     model_file = st.text_input(
         "📁 Model filename (in project root):",
-        value="deal_predictor_20251109_020716.joblib",
+        value="deal_predictor_20251118_185116.joblib",
         key="ml_model_file"
     )
     
