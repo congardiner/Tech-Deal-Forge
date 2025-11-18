@@ -1,7 +1,6 @@
-# Tech Deal Forge - Streamlit Dashboard
+# Tech Deal Forge - Webscraping Platform for Deal Tracking
 🔥 **Real-time tech deals aggregator and price tracker**
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
-[![Scheduled Scrapers](https://github.com/congardiner/Senior-Project---Tech-Deal-Forge/actions/workflows/scheduled-scrapers.yml/badge.svg?branch=main)](https://github.com/congardiner/Senior-Project---Tech-Deal-Forge/actions/workflows/scheduled-scrapers.yml)
 
 ## Overview of the Project 
 
