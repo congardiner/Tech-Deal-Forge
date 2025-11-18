@@ -1,0 +1,101 @@
+name: Scheduled Scrapers
+
+on:
+  schedule:
+    # Runs at 06:00, 12:00, 18:00 UTC every day
+    - cron: '0 6,12,18 * * *'
+  workflow_dispatch:
+    inputs:
+      run_scope:
+        description: 'Scope of run (all|quick)'
+        required: false
+        default: 'all'
+
+permissions:
+  contents: read
+
+jobs:
+  run-scrapers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      # Expose secrets as env vars. Define these in repo settings → Secrets and variables → Actions
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      BESTBUY_API_KEY: ${{ secrets.BESTBUY_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      # Optional: if using a database URL or other services
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Show environment summary
+        run: |
+          python --version
+          pip list
+
+      - name: Prepare run folder
+        run: |
+          mkdir -p run_outputs
+
+      - name: Run scrapers (orchestrated)
+        id: run_scrapers
+        shell: bash
+        run: |
+          set -e
+          echo "Run scope: ${{ github.event.inputs.run_scope || 'all' }}"
+          # Prefer Python files directly so it works on ubuntu
+          echo "Starting Slickdeals scraper"
+          python slickdeals_webscraper.py | tee run_outputs/slickdeals_log.txt
+          echo "Starting BestBuy web scraper"
+          python bestbuy_webscraper.py | tee run_outputs/bestbuy_web_log.txt
+          echo "Starting BestBuy API scraper"
+          python bestbuy_api_scraper.py | tee run_outputs/bestbuy_api_log.txt
+          echo "Starting Data Pipeline"
+          python data_pipeline.py | tee run_outputs/data_pipeline_log.txt
+
+      - name: Upload logs and outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-run-${{ github.run_id }}
+          path: |
+            run_outputs/**
+            output/**
+            error_logs/**
+          if-no-files-found: warn
+          retention-days: 14
+
+      # Optional: commit output CSVs back to repo (disable by default)
+      - name: Commit updated outputs
+        if: ${{ false }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add output/*.csv || true
+          git add scraper_log.txt || true
+          git commit -m "chore: update outputs from scheduled run $GITHUB_RUN_ID" || echo "No changes to commit"
+          git push
+
+      # Optional: trigger n8n webhook for notification (set N8N_WEBHOOK in secrets)
+      - name: Notify n8n webhook
+        if: ${{ secrets.N8N_WEBHOOK_URL != '' }}
+        run: |
+          curl -X POST -H 'Content-Type: application/json' \
+            -d '{"run_id": "'"${{ github.run_id }}"'", "repo": "'"${{ github.repository }}"'"}' \
+            "${{ secrets.N8N_WEBHOOK_URL }}"

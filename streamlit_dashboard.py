@@ -33,7 +33,10 @@ st.set_page_config(
 
 
 
-# -- Category Normalization --
+# -- Category Normalization Section --
+# NOTE: This function normalizes noisy/miscategorized category strings into readable labels.
+# NOTE: ALL previous issues have been resolved in feeding my categories, as issues kept persisting in scraped input/output for searching and queries. 
+# NOTE: RESOLVED.
 def normalize_category(raw) -> str:
     """Normalize noisy/miscategorized category strings into readable labels.
     Handles glued prefixes (e.g., 'dealsunlocked'), query tails
@@ -1188,7 +1191,7 @@ st.markdown("""
         © 2025 Tech Deal Forge | Licensed under the MIT License
     </p>
     <p style="font-size: 16px; color: #888; margin: 5px 0;">
-        This tool is provided for informational purposes only and does not constitute financial advice.
+        This tool is provided for informational purposes only on tech-related product deals and does not constitute financial advice.
     </p>
 </div>
 """, unsafe_allow_html=True)
