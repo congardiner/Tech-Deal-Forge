@@ -276,7 +276,7 @@ def main():
     if filter_args:
         print(f"Filters: {filter_args}")
 
-    results = pipeline.process_deals(deals, **filter_args)
+    results = pipeline.process_deals(deals, csv_prefix="slickdeals", **filter_args)
 
     print("-" * 60)
     print("Processing Results")

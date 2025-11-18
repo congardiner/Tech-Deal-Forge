@@ -579,8 +579,10 @@ class DealsDataPipeline:
         self.logger.info(f"Retrieved {len(df)} deals from SQLite database")
         return df
     
-    def process_deals(self, deals_data: List[Dict], **filters) -> Dict[str, Path]:
-        """Complete pipeline: clean, filter, and export deals"""
+    def process_deals(self, deals_data: List[Dict], csv_prefix: Optional[str] = None, **filters) -> Dict[str, Path]:
+        """Complete pipeline: clean, filter, and export deals.
+        If csv_prefix is provided, CSV will be named like "{prefix}_deals_YYYYMMDD_HHMMSS.csv".
+        """
         # Clean the data
         df = self.clean_data(deals_data)
         
@@ -595,8 +597,12 @@ class DealsDataPipeline:
         # Export to all formats
         results = {}
         
-        # CSV export
-        csv_path = self.to_csv(df)
+        # CSV export (optionally prefixed to avoid collisions when multiple scrapers run quickly)
+        csv_filename = None
+        if csv_prefix:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            csv_filename = f"{csv_prefix}_deals_{timestamp}.csv"
+        csv_path = self.to_csv(df, filename=csv_filename)
         results['csv'] = csv_path
      
         # Database export

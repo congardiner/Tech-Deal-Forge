@@ -280,7 +280,7 @@ def main():
     # Save via pipeline
     project_root = Path(__file__).resolve().parent
     pipeline = DealsDataPipeline(output_dir=str(project_root / "output"), use_mysql=False)
-    result = pipeline.process_deals(all_deals)
+    result = pipeline.process_deals(all_deals, csv_prefix="bestbuy_api")
     
     print(f"\n📁 CSV saved to: {result['csv']}")
     print(f"💾 Database entries added: {result['database_rows_added']}")

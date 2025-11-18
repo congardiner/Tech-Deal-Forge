@@ -19,16 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
-    env:
-      # Expose secrets as env vars. Define these in repo settings → Secrets and variables → Actions
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-      BESTBUY_API_KEY: ${{ secrets.BESTBUY_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-      # Optional: if using a database URL or other services
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
     steps:
       - name: Checkout
@@ -62,10 +52,7 @@ jobs:
           echo "Run scope: ${{ github.event.inputs.run_scope || 'all' }}"
           # Prefer Python files directly so it works on ubuntu
           echo "Starting Slickdeals scraper"
-          python slickdeals_webscraper.py | tee run_outputs/slickdeals_log.txt
-          echo "Starting BestBuy web scraper"
-          python bestbuy_webscraper.py | tee run_outputs/bestbuy_web_log.txt
-          echo "Starting BestBuy API scraper"
+          python slickdeals_webscraper.py | tee run_outputs/slickdeals_log.txt          echo "Starting BestBuy API scraper"
           python bestbuy_api_scraper.py | tee run_outputs/bestbuy_api_log.txt
           echo "Starting Data Pipeline"
           python data_pipeline.py | tee run_outputs/data_pipeline_log.txt
@@ -92,10 +79,3 @@ jobs:
           git commit -m "chore: update outputs from scheduled run $GITHUB_RUN_ID" || echo "No changes to commit"
           git push
 
-      # Optional: trigger n8n webhook for notification (set N8N_WEBHOOK in secrets)
-      - name: Notify n8n webhook
-        if: ${{ secrets.N8N_WEBHOOK_URL != '' }}
-        run: |
-          curl -X POST -H 'Content-Type: application/json' \
-            -d '{"run_id": "'"${{ github.run_id }}"'", "repo": "'"${{ github.repository }}"'"}' \
-            "${{ secrets.N8N_WEBHOOK_URL }}"

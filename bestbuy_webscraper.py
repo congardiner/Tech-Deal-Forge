@@ -294,7 +294,7 @@ def main():
     # Use project-root output folder to match Streamlit's DB path
     project_root = Path(__file__).resolve().parent
     pipeline = DealsDataPipeline(output_dir=str(project_root / "output"), use_mysql=False)
-    result = pipeline.process_deals(all_deals)
+    result = pipeline.process_deals(all_deals, csv_prefix="bestbuy")
     
     print(f"Saved to: {result['csv']}")
     print(f"Database entries added: {result['database_rows_added']}")
