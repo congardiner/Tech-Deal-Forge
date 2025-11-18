@@ -1,6 +1,7 @@
 # Tech Deal Forge - Streamlit Dashboard
 🔥 **Real-time tech deals aggregator and price tracker**
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
+[![Scheduled Scrapers](https://github.com/congardiner/Senior-Project---Tech-Deal-Forge/actions/workflows/scheduled-scrapers.yml/badge.svg?branch=main)](https://github.com/congardiner/Senior-Project---Tech-Deal-Forge/actions/workflows/scheduled-scrapers.yml)
 
 ## Overview of the Project 
 
@@ -120,7 +121,7 @@ Scrapers run at scheduled intervals, so:
 ## **Acknowledged Community Requests**
 - Feedback is always encouraged and accepted, if you have any encountered issues, please feel free to open a request and statement in 'Code Issues' as provided by Github, in addition to this, if there is a requested feature or area that could be improved for enhancing the user experience send it my way!
 
-#### **Features to Add**:
+### **Features to Add**:
 - There is no user authentication or personalization features at this time, this a feature that is planned for future development, and will be added in later versions.
 - Cloud-Database Migration will take place on a future point in time as the service scales, as this will be necessary in order to keep the continuity of project alive and well.
 - Image(s) of specified items and products has been heavily requested, storage requirements currently restrict this addition, however, this is currently being researched for viable options. 

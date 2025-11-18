@@ -502,6 +502,13 @@ class DealsDataPipeline:
                         rows_added += 1
                 
                 self.logger.info(f"Added {rows_added} historical deal entries to SQLite database")
+                # Log total rows after insert for external verification
+                try:
+                    cur2 = conn.execute("SELECT COUNT(*) FROM deals")
+                    total = cur2.fetchone()[0]
+                    self.logger.info(f"Total rows now in deals table: {total}")
+                except Exception as e:
+                    self.logger.warning(f"Could not fetch total row count: {e}")
                 return rows_added
             else:
                 df.to_sql('deals', conn, if_exists=if_exists, index=False)

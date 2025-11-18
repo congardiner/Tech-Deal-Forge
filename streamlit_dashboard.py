@@ -385,6 +385,30 @@ st.markdown("---")
 # ===== TABS SECTION (now using filtered_df as single source) =====
 st.header("📊 Analytics & Insights")
 
+# Optional focused deal selection (applies across tabs that support it)
+if 'selected_deal_link' not in st.session_state:
+    st.session_state.selected_deal_link = None
+
+focus_df = filtered_df[['title','link']].dropna().drop_duplicates()
+if not focus_df.empty:
+    # Limit options for performance
+    max_focus = 500
+    focus_df = focus_df.head(max_focus)
+    title_to_link = {row.title: row.link for row in focus_df.itertuples()}
+    focus_choice = st.selectbox(
+        "🎯 Focus on a specific deal (optional)",
+        options=["(None)"] + list(title_to_link.keys()),
+        index=0,
+        help="Select a deal to tailor price history and context."
+    )
+    if focus_choice != "(None)":
+        st.session_state.selected_deal_link = title_to_link[focus_choice]
+        st.markdown(f"**Focused Deal:** {focus_choice[:80]}  |  [Open Deal]({st.session_state.selected_deal_link})")
+    else:
+        st.session_state.selected_deal_link = None
+else:
+    st.session_state.selected_deal_link = None
+
 # Create tabs for different views
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "💰 Price History", 
@@ -423,39 +447,43 @@ with tab1:
     st.subheader("💰 Price History Tracker")
     st.caption("Shows deals from your current filters that have multiple price snapshots over time")
     
-    # Use filtered_df to get candidate links
-    candidate_links = tuple(filtered_df['link'].dropna().unique()[:500])  # Limit to 500 for performance
-    
+    # Use focused deal if chosen; else discover deals with history
+    if st.session_state.selected_deal_link:
+        candidate_links = (st.session_state.selected_deal_link,)
+    else:
+        candidate_links = tuple(filtered_df['link'].dropna().unique()[:500])
+
     if not candidate_links:
         st.warning("No deals match your current filters. Adjust filters above to see price history.")
     else:
-        # Get deals with history from the filtered set
         with st.spinner("Finding deals with price history..."):
             matching_deals = get_deals_with_history_from_links(candidate_links)
-        
-        # Single container for stable rendering
+
         content_container = st.container()
-        
         with content_container:
             if not matching_deals.empty:
                 st.success(f"Found {len(matching_deals)} deals with price history in your filtered results")
-                
-                # Show results as static table
+                # Allow manual selection
+                deal_titles_hist = matching_deals['title'].tolist()
+                selected_deal_title = st.selectbox(
+                    "Select a deal for detailed price history",
+                    options=deal_titles_hist,
+                    index=0,
+                    key="price_history_select"
+                )
                 st.dataframe(
-                    matching_deals[['title', 'entry_count']]
-                        .rename(columns={'title': 'Title', 'entry_count': 'Times Tracked'}),
+                    matching_deals[['title','entry_count']]
+                        .rename(columns={'title':'Title','entry_count':'Times Tracked'}),
                     hide_index=True,
                 )
-                
-                # Pick first match automatically
-                selected_deal_title = matching_deals.iloc[0]['title']
+                deal_link = matching_deals[matching_deals['title'] == selected_deal_title]['link'].iloc[0]
+                st.markdown(f"🔗 [Open Deal]({deal_link})")
             else:
                 st.info("📊 No deals in your filtered results have multiple price points yet. Run scrapers over multiple days to build history.")
                 selected_deal_title = None
-            
-            if selected_deal_title:
-                # Get full history for selected deal
-                deal_link = matching_deals[matching_deals['title'] == selected_deal_title]['link'].iloc[0]
+                deal_link = None
+
+            if selected_deal_title and deal_link:
                 
                 conn = sqlite3.connect(str(DB_PATH))
                 history_query = """
@@ -482,6 +510,23 @@ with tab1:
                     marker=dict(size=10, symbol='circle'),
                     hovertemplate='<b>Date:</b> %{x}<br><b>Price:</b> $%{y:.2f}<extra></extra>'
                 ))
+
+                # Add 7-day moving average (time-based rolling) for smoother context
+                try:
+                    dt_sorted = deal_timeline.sort_values('scraped_at').copy()
+                    dt_sorted = dt_sorted.set_index('scraped_at')
+                    dt_sorted['ma7'] = dt_sorted['price_numeric'].rolling('7D').mean()
+                    dt_sorted = dt_sorted.reset_index()
+                    fig.add_trace(go.Scatter(
+                        x=dt_sorted['scraped_at'],
+                        y=dt_sorted['ma7'],
+                        mode='lines',
+                        name='7-day avg',
+                        line=dict(color='#2E86AB', width=2, dash='dot'),
+                        hovertemplate='<b>Date:</b> %{x}<br><b>7d Avg:</b> $%{y:.2f}<extra></extra>'
+                    ))
+                except Exception:
+                    pass
                 
                 # Add min/max price annotations
                 min_price_idx = deal_timeline['price_numeric'].idxmin()
@@ -534,7 +579,18 @@ with tab1:
                     yaxis_title="Price ($)",
                     height=450,
                     hovermode='x unified',
-                    plot_bgcolor='rgba(0,0,0,0.05)'
+                    plot_bgcolor='rgba(0,0,0,0.05)',
+                    xaxis=dict(
+                        rangeselector=dict(
+                            buttons=[
+                                dict(count=7, label="7d", step="day", stepmode="backward"),
+                                dict(count=30, label="30d", step="day", stepmode="backward"),
+                                dict(step="all", label="All")
+                            ]
+                        ),
+                        rangeslider=dict(visible=True),
+                        type='date'
+                    )
                 )
                 
                 st.plotly_chart(fig, use_container_width=True)
@@ -838,7 +894,7 @@ with tab3:
     if not drops.empty:
         # Create bar chart of price drops
         fig = go.Figure()
-        
+        # Attach customdata with link and full title to support click selection
         fig.add_trace(go.Bar(
             x=drops['drop_percent'],
             y=drops['title'].str[:40] + "...",
@@ -851,9 +907,10 @@ with tab3:
             ),
             text=drops['drop_percent'].apply(lambda x: f"{x:.1f}%"),
             textposition='outside',
-            hovertemplate='<b>%{y}</b><br>Discount: %{x:.1f}%<extra></extra>'
+            customdata=drops[['link','title']].values,
+            hovertemplate='<b>%{customdata[1]}</b><br>Discount: %{x:.1f}%<extra></extra>'
         ))
-        
+
         fig.update_layout(
             title="Top 20 Price Drops (Discount %)",
             xaxis_title="Discount Percentage",
@@ -862,8 +919,6 @@ with tab3:
             showlegend=False,
             plot_bgcolor='rgba(0,0,0,0.05)'
         )
-        
-        st.plotly_chart(fig, use_container_width=True)
         
         # Show detailed price drop table
         st.subheader("📋 Price Drop Details")
@@ -941,6 +996,27 @@ with tab4:
             fig = px.line(x=hour_counts.index, y=hour_counts.values, title='Deals by Hour of Day (Filtered)', labels={'x':'Hour (24h)','y':'Number of Deals'})
             fig.update_layout(height=300)
             st.plotly_chart(fig, use_container_width=True)
+
+        # Day vs Hour heatmap for interactive discovery
+        try:
+            st.subheader("⏱️ Day × Hour Heatmap")
+            heat_df = base_timeline.copy()
+            heat_df['day'] = heat_df['scraped_at'].dt.day_name()
+            heat_df['hour'] = heat_df['scraped_at'].dt.hour
+            if not heat_df.empty:
+                order = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']
+                heat_df['day'] = pd.Categorical(heat_df['day'], categories=order, ordered=True)
+                agg = heat_df.groupby(['day','hour']).size().reset_index(name='count')
+                fig = px.density_heatmap(
+                    agg.sort_values(['day','hour']),
+                    x='hour', y='day', z='count',
+                    color_continuous_scale='Blues',
+                    labels={'hour':'Hour (24h)','day':'Day','count':'Deals'}
+                )
+                fig.update_layout(height=350)
+                st.plotly_chart(fig, use_container_width=True)
+        except Exception:
+            pass
 
 with tab5:
     st.title("🤖 AI-Powered Deal Predictions")
@@ -1109,10 +1185,24 @@ if not filtered_df.empty and available_columns:
     end_idx = start_idx + page_size
     
     # NOTE: Displays the data slice as intended, no issues to report after edge cases were handled.
-    st.dataframe(
-        display_df.iloc[start_idx:end_idx],
-        hide_index=True
-    )
+    show_cards = st.checkbox("Show deals as cards", value=False, help="Toggle between table view and card view", key="show_cards_toggle")
+    page_slice = display_df.iloc[start_idx:end_idx]
+    if show_cards:
+        for _, row in page_slice.iterrows():
+            title = str(row.get('title',''))
+            price = row.get('price') or row.get('price_numeric')
+            cat_label = row.get('category_clean') or row.get('category')
+            ts = row.get('scraped_at')
+            link = row.get('link')
+            price_disp = f"${price:.2f}" if isinstance(price,(int,float)) else str(price)
+            meta = f"{price_disp} | {cat_label} | {ts}" if ts else f"{price_disp} | {cat_label}"
+            st.markdown(f"**{title[:90]}**\n{meta}\n{'🔗 [Open Deal](' + link + ')' if isinstance(link,str) else ''}")
+            st.markdown("---")
+    else:
+        st.dataframe(
+            page_slice,
+            hide_index=True
+        )
     
 
     # FILE DOWNLOADS for my csv and json outputs. 
@@ -1151,6 +1241,37 @@ if not filtered_df.empty and available_columns:
 else:
     st.info("No deals found matching your current search criteria")
 
+
+# ===== RETAILER LEADERBOARD =====
+st.markdown("---")
+st.header("🏪 Retailer Leaderboard")
+st.caption("Volume, median price, and average discount (from tracked drops)")
+
+if 'website' in filtered_df.columns:
+    # Volume and median price from filtered_df
+    vol = (
+        filtered_df.groupby('website')
+        .agg(volume=('link', 'nunique'), median_price=('price_numeric', 'median'))
+        .reset_index()
+    )
+    # Compute average drop % by website using price drop helper on current filtered links
+    links_tuple = tuple(filtered_df['link'].dropna().unique())
+    drops_web = get_price_drops_from_links(links_tuple)
+    if not drops_web.empty:
+        drops_agg = drops_web.groupby('website')['drop_percent'].mean().reset_index().rename(columns={'drop_percent':'avg_drop_percent'})
+        leaderboard = vol.merge(drops_agg, on='website', how='left')
+    else:
+        leaderboard = vol.copy()
+        leaderboard['avg_drop_percent'] = float('nan')
+    # Format
+    leaderboard = leaderboard.sort_values(['volume','median_price'], ascending=[False, True])
+    leaderboard['median_price'] = leaderboard['median_price'].apply(lambda x: f"${x:.2f}" if pd.notna(x) else "N/A")
+    leaderboard['avg_drop_percent'] = leaderboard['avg_drop_percent'].apply(lambda x: f"{x:.1f}%" if pd.notna(x) else "—")
+    st.dataframe(leaderboard.rename(columns={
+        'website': 'Website', 'volume':'Unique Deals', 'median_price':'Median Price', 'avg_drop_percent':'Avg Drop %'
+    }), hide_index=True, use_container_width=True)
+else:
+    st.info("Website column not found in data.")
 
 # Footer with status
 st.markdown("---")  # Horizontal line
