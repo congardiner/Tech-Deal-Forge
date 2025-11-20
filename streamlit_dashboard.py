@@ -12,7 +12,7 @@ import pandas as pd
 import sqlite3
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
+from datetime import datetime
 import os
 from pathlib import Path
 import re
@@ -31,6 +31,114 @@ st.set_page_config(
     layout="wide",                     
     initial_sidebar_state="collapsed"  
 )
+
+
+# UPDATED STYLING METRICS to be more visually appealing ... IN testing... 
+
+st.markdown("""
+<style>
+    /* Global theme adjustments */
+    :root {
+        --primary-color: #FF4B4B;
+        --secondary-color: #2E86AB;
+        --success-color: #4CAF50;
+        --warning-color: #FFA726;
+        --background-dark: #1e1e1e;
+        --background-light: #2d2d2d;
+        --text-primary: #ffffff;
+        --text-secondary: #b8b8b8;
+    }
+    
+    /* Streamlit button styling */
+    .stButton>button {
+        background: linear-gradient(90deg, var(--primary-color) 0%, #FF6B6B 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        transition: all 0.3s;
+        box-shadow: 0 2px 8px rgba(255, 75, 75, 0.3);
+    }
+    
+    .stButton>button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 75, 75, 0.5);
+    }
+    
+    /* Tab styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2rem;
+        background-color: var(--background-light);
+        padding: 1rem;
+        border-radius: 10px;
+    }
+    
+    .stTabs [data-baseweb="tab"] {
+        font-size: 1rem;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+    
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: rgba(255, 75, 75, 0.1);
+    }
+    
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(90deg, var(--primary-color) 0%, #FF6B6B 100%) !important;
+        color: white !important;
+    }
+    
+    /* Expander styling */
+    .streamlit-expanderHeader {
+        background: var(--background-light);
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    
+    /* Dataframe styling */
+    .dataframe {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    /* Info/Success boxes */
+    .stAlert {
+        border-radius: 8px;
+        border-left: 4px solid var(--primary-color);
+    }
+</style>
+""", unsafe_allow_html=True)
+
+
+# MOBILE RESPONSIVENESS - 
+# NOTE: Basic integration, further testing may be needed on various devices.
+# NOTE: This has resolved my issues with mobile responsiveness and scaling for smaller devices.
+
+st.markdown("""
+<style>
+    @media (max-width: 768px) {
+        .hero-container {
+            padding: 1.5rem;
+        }
+        
+        .logo-container {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .main-title {
+            font-size: 1.8rem;
+        }
+        
+        .metric-card {
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
 
@@ -129,6 +237,7 @@ if 'row_limit' not in st.session_state:
 
 
 # ===== HERO SECTION WITH CENTERED LOGO =====
+# NOTE: all issues have now been resolved with context cues, scaling and proper implementation of columns for the layout. Other textual requirements and other reported bugs were also addressed in my iterations. 
 logo_col, title_col = st.columns([1, 4])
 with logo_col:
     st.image("images/deal-forge-logo/tech_deal_forge_logo.png", width=140)
@@ -146,6 +255,11 @@ with title_col:
     """, unsafe_allow_html=True)
 
 st.markdown("---")
+
+
+
+
+
 
 
 # NOTE: something that I learned, st.cache_data is the way to go for making streamlit super fast to use!
