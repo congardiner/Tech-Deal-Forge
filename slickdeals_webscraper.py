@@ -37,7 +37,17 @@ CATEGORY_URLS = [
     "https://slickdeals.net/cell-phone-deals/",
     "https://slickdeals.net/computer-deals/?filters%5Brating%5D%5B%5D=frontpage&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=",
     "https://slickdeals.net/deals/cellphone-providers/?filters%5Brating%5D%5B%5D=frontpage&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=",
-    "https://slickdeals.net/deals/education/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D="
+    "https://slickdeals.net/deals/education/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=",
+    "https://slickdeals.net/ps4-deals/",
+    "https://slickdeals.net/xbox-one-deals/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=", # Xbox Deals
+    "https://slickdeals.net/deals/ps5-deals/?filters%5Brating%5D%5B%5D=5&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=", # PS5 deals
+    "https://slickdeals.net/deals/nintendo-switch/?filters%5Brating%5D%5B%5D=5&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=", # Nintendo Switch
+    "https://slickdeals.net/deals/console/?filters%5Brating%5D%5B%5D=5&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=", # Video Game Consoles
+    "https://slickdeals.net/deals/apple/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=", # Popular Apple Product Deals
+    "https://slickdeals.net/deals/computer-parts/?filters%5Brating%5D%5B%5D=5&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=", # Computer Parts Deals
+    "https://slickdeals.net/deals/smartphone/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D=", # More Phone Deals
+    "https://slickdeals.net/deals/virtual-reality/",
+    "https://slickdeals.net/tv-deals/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D="
 ]
 
 

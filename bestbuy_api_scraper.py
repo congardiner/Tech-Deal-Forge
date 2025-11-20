@@ -18,7 +18,9 @@ BESTBUY_URLS = [
     "https://www.bestbuy.com/site/computers-pcs/computer-monitors/abcat0509000.c?id=abcat0509000",
     "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat138500050001&id=pcat17071&qp=currentoffers_facet%3DCurrent+Deals%7EOn+Sale%5Econdition_facet%3DCondition%7ENew&st=categoryid%24pcmcat138500050001",
     "https://www.bestbuy.com/site/xbox-series-x-and-s/xbox-series-x-and-s-consoles/pcmcat1586900952752.c?id=pcmcat1586900952752",
-    "https://www.bestbuy.com/site/all-electronics-on-sale/all-wearable-technology-on-sale/pcmcat1690897435393.c?id=pcmcat1690897435393"
+    "https://www.bestbuy.com/site/all-electronics-on-sale/all-wearable-technology-on-sale/pcmcat1690897435393.c?id=pcmcat1690897435393",
+    "https://www.bestbuy.com/site/nintendo-switch-2/nintendo-switch-2-consoles/pcmcat1743185999078.c?id=pcmcat1743185999078",
+    "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat1506545802590&id=pcat17071&qp=headphonefit_facet%3DHeadphone+Fit%7EOver-the-Ear&st=pcmcat1506545802590_categoryid%24pcmcat144700050004" # Over-Ear Headphones
 ]
 
 HEADLESS = os.getenv('BESTBUY_HEADLESS', 'true').lower() == 'true'
