@@ -128,20 +128,23 @@ if 'row_limit' not in st.session_state:
     st.session_state.row_limit = 10000
 
 
-# NOTE: Implemented my logo after creating it using Canva
-st.image("images/deal-forge-logo/tech_deal_forge_logo.png", width=150)
+# ===== HERO SECTION WITH CENTERED LOGO =====
+logo_col, title_col = st.columns([1, 4])
+with logo_col:
+    st.image("images/deal-forge-logo/tech_deal_forge_logo.png", width=140)
+with title_col:
+    st.markdown("""
+    <div style='padding-left: 20px;'>
+        <h1 style='margin-bottom: 5px;'>The Tech Deal Forge</h1>
+        <p style='font-size: 1.2em; color: #888; margin-top: 0;'>Empowering Data-Driven Decisions for Tech Deals</p>
+    </div>
+    """, unsafe_allow_html=True)
+    st.markdown("""
+    <div style='padding-left: 20px;'>
+        <p style='font-size: 1.2em; color: #888; margin-top: 0;'>The data for this website is compiled from various sources with the intent to streamline the process of being informed while purchasing into related consumer product deals. Provision of Deal Insights are provided as a free service, and do not constitute official financial advice.</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-
-st.title("The Tech Deal Forge")               
-st.subheader("Empowering Data-Driven Decisions for Tech-Related Deals")    
-
-
-# Header row with theme toggle
-header_col1, header_col2 = st.columns([6, 1])
-with header_col1:
-    st.markdown("**Welcome to Deal Forge!**")  
-    st.caption("The data for this website is compiled from various sources with the intent to streamline the process of being informed while purchasing into related consumer product deals. Provision of Deal Insights are provided as a free service, and do not constitute official financial advice.")
-    st.caption("Happy Deal Hunting!")
 st.markdown("---")
 
 
@@ -150,18 +153,7 @@ st.markdown("---")
 
 # NOTE: this hasn't been implemented yet ... Still a work in progress, concerns with viability and security.
 # Initialize database for cloud deployment (if needed)
-if not DB_PATH.exists():
-    # Removed try/except: perform a guarded import and fail fast with clear instructions.
-    st.error("Database file missing: run your scrapers or initialization script first.")
-    st.code(f"Expected path: {DB_PATH}")
-    # Optional guarded import (will only run if module present)
-    if (BASE_DIR / 'init_cloud_db.py').exists():
-        import importlib
-        st.info("Attempting one-time initialization via init_cloud_db.init_cloud_database()")
-        module = importlib.import_module('init_cloud_db')
-        module.init_cloud_database()
-        st.success("Database initialized. Please rerun the app.")
-    st.stop()
+
 
 @st.cache_data(ttl=300)
 def load_deals_data(row_limit: int = 10000):
@@ -205,146 +197,134 @@ if df.empty:
 
 
 # NOTE: This is my main layout and the initial gate keeping to my columnns and overall design philosophy.
-# MAIN METRICS ROW 
+# MAIN METRICS ROW - Enhanced with visual cards
+st.markdown("### 📈 At a Glance")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
-    st.metric("Total Deals", len(df))
+    st.metric("🎯 Total Deals", f"{len(df):,}")
 
 with col2:
     deals_with_prices = df['price_numeric'].notna().sum()
-    st.metric("With Prices", deals_with_prices)
+    pct_with_prices = (deals_with_prices / len(df) * 100) if len(df) > 0 else 0
+    st.metric("💰 With Prices", f"{deals_with_prices:,}", f"{pct_with_prices:.0f}%")
 
 with col3:
     avg_price = df['price_numeric'].mean()
     if pd.notna(avg_price):
-        st.metric("Avg Price", f"${avg_price:.2f}")
+        st.metric("💵 Avg Price", f"${avg_price:.2f}")
     else:
-        st.metric("Avg Price", "N/A")
+        st.metric("💵 Avg Price", "N/A")
 
 with col4:
     if 'scraped_at' in df.columns:
         latest = df['scraped_at'].max()
-        st.metric("Last Update", latest.strftime("%m/%d %H:%M"))
+        hours_ago = (datetime.now() - latest).total_seconds() / 3600
+        st.metric("🕐 Last Update", latest.strftime("%m/%d %H:%M"), f"{hours_ago:.1f}h ago")
 
 st.markdown("---")
 
-# UNIFIED FILTER SECTION
-# NOTE: I opted to just have an all-in-one filter section at the top for simplicity
-# as otherwise the widgets can overlay one another and make it so that items don't load or adverse ghosting occurs otherwise.
-
-st.subheader("🔍 Search & Filter Deals")
-st.caption("Filters apply to all tabs below. Adjust criteria to narrow your search.")
-
-filter_col1, filter_col2, filter_col3 = st.columns([2, 2, 1])
-
-with filter_col1:
-    # Keyword search
-    search_query = st.text_input(
-        "🔎 Keyword Search",
-        value=st.session_state.search_query,
-        placeholder="e.g., laptop, AMD, monitor...",
-        help="Search in deal titles",
-        key="main_search_input"
-    )
-    st.session_state.search_query = search_query
-
-with filter_col2:
-    # Category multiselect
-    if 'category_clean' in df.columns:
-        categories = sorted([c for c in df['category_clean'].dropna().unique().tolist() if c])
-    else:
-        categories = sorted([c for c in df.get('category', pd.Series([], dtype=str)).dropna().unique().tolist() if c])
+# UNIFIED FILTER SECTION - Collapsible for cleaner UI
+with st.expander("🔍 **Search & Filter Deals**", expanded=False):
+    st.caption("Filters apply to all tabs below. Adjust criteria to narrow your search.")
     
-    selected_categories = st.multiselect(
-        "📂 Categories",
-        options=categories,
-        default=st.session_state.selected_categories,  # empty by default
-        help="Select one or more categories",
-        key="main_category_select"
-    )
-    st.session_state.selected_categories = selected_categories
-
-with filter_col3:
-    # Data scope selector
-    row_limit_option = st.selectbox(
-        "� Data Scope",
-        options=["10k rows", "20k rows", "All (slow)"],
-        index=0,
-        help="Limit rows for performance",
-        key="main_row_limit_select"
-    )
+    filter_col1, filter_col2 = st.columns(2)
     
-    # NOTE: This ensures that the ghosting effect that is common within streamlit isn't continually replicated across sessions, as this has been a redundant issue in scaling out this serviceable site. 
-    # EDIT NOTE: no further issues to address in this respect after testing and using caching to improve performance.
-    
-    if st.button("🔄 Refresh", help="Reload data from database", key="main_refresh_button"):
-        # Clear session state data
-        st.session_state.df_loaded = None
-        st.cache_data.clear()
-        # Update row limit if changed
-        if row_limit_option.startswith("10k"):
-            st.session_state.row_limit = 10000
-        elif row_limit_option.startswith("20k"):
-            st.session_state.row_limit = 20000
-        else:
-            st.session_state.row_limit = 0
-        st.rerun()
-
-# Second row of filters
-filter_col4, filter_col5, filter_col6 = st.columns(3)
-
-with filter_col4:
-    # Price range
-    if df['price_numeric'].notna().any():
-        min_price_data = float(df['price_numeric'].min())
-        max_price_data = float(df['price_numeric'].max())
-        
-        # Handle case where min = max (only one price in dataset)
-        if min_price_data == max_price_data:
-            st.info(f"💰 Single Price: ${min_price_data:.2f}")
-            price_range = (min_price_data, max_price_data)
-            st.session_state.min_price = min_price_data
-            st.session_state.max_price = max_price_data
-        else:
-            price_range = st.slider(
-                "💰 Price Range ($)",
-                min_value=0.0,
-                max_value=max_price_data * 1.1,
-                value=(st.session_state.min_price, min(st.session_state.max_price, max_price_data)),
-                step=10.0,
-                key="main_price_slider"
-            )
-            st.session_state.min_price = price_range[0]
-            st.session_state.max_price = price_range[1]
-    else:
-        st.info("No price data available")
-        price_range = (0, 0)
-
-with filter_col5:
-    # Date range filter
-    if 'scraped_at' in df.columns and df['scraped_at'].notna().any():
-        min_dt = pd.to_datetime(df['scraped_at']).min().date()
-        max_dt = pd.to_datetime(df['scraped_at']).max().date()
-        default_start = max_dt - pd.Timedelta(days=7)
-        
-        date_range = st.date_input(
-            "📅 Date Range",
-            value=(default_start.date() if hasattr(default_start, 'date') else default_start, max_dt),
-            min_value=min_dt,
-            max_value=max_dt,
-            help="Filter deals by scrape date",
-            key="main_date_range"
+    with filter_col1:
+        # Keyword search
+        search_query = st.text_input(
+            "🔎 Keyword Search",
+            value=st.session_state.search_query,
+            placeholder="e.g., laptop, AMD, monitor...",
+            help="Search in deal titles",
+            key="main_search_input"
         )
-        st.session_state.date_range = date_range
-    else:
-        date_range = None
+        st.session_state.search_query = search_query
 
-with filter_col6:
-    st.caption(f"**Loaded:** {st.session_state.load_timestamp.strftime('%H:%M:%S') if st.session_state.load_timestamp else 'N/A'}")
-    st.caption(f"**Rows:** {len(df):,}")
-    if st.session_state.search_query or bool(st.session_state.selected_categories):
-        st.caption("🔍 *Filters active*")
+    with filter_col2:
+        # Category multiselect
+        if 'category_clean' in df.columns:
+            categories = sorted([c for c in df['category_clean'].dropna().unique().tolist() if c])
+        else:
+            categories = sorted([c for c in df.get('category', pd.Series([], dtype=str)).dropna().unique().tolist() if c])
+        
+        selected_categories = st.multiselect(
+            "📂 Categories",
+            options=categories,
+            default=st.session_state.selected_categories,
+            help="Select one or more categories",
+            key="main_category_select"
+        )
+        st.session_state.selected_categories = selected_categories
+    
+    # Second row of filters
+    filter_col3, filter_col4, filter_col5 = st.columns(3)
+    
+    with filter_col3:
+        # Price range
+        if df['price_numeric'].notna().any():
+            min_price_data = float(df['price_numeric'].min())
+            max_price_data = float(df['price_numeric'].max())
+            
+            if min_price_data == max_price_data:
+                st.info(f"💰 Single Price: ${min_price_data:.2f}")
+                price_range = (min_price_data, max_price_data)
+                st.session_state.min_price = min_price_data
+                st.session_state.max_price = max_price_data
+            else:
+                price_range = st.slider(
+                    "💰 Price Range ($)",
+                    min_value=0.0,
+                    max_value=max_price_data * 1.1,
+                    value=(st.session_state.min_price, min(st.session_state.max_price, max_price_data)),
+                    step=10.0,
+                    key="main_price_slider"
+                )
+                st.session_state.min_price = price_range[0]
+                st.session_state.max_price = price_range[1]
+        else:
+            st.info("No price data available")
+            price_range = (0, 0)
+    
+    with filter_col4:
+        # Date range filter
+        if 'scraped_at' in df.columns and df['scraped_at'].notna().any():
+            min_dt = pd.to_datetime(df['scraped_at']).min().date()
+            max_dt = pd.to_datetime(df['scraped_at']).max().date()
+            default_start = max_dt - pd.Timedelta(days=7)
+            
+            date_range = st.date_input(
+                "📅 Date Range",
+                value=(default_start.date() if hasattr(default_start, 'date') else default_start, max_dt),
+                min_value=min_dt,
+                max_value=max_dt,
+                help="Filter deals by scrape date",
+                key="main_date_range"
+            )
+            st.session_state.date_range = date_range
+        else:
+            date_range = None
+    
+    with filter_col5:
+        # Data scope selector
+        row_limit_option = st.selectbox(
+            "📊 Data Scope",
+            options=["10k rows", "20k rows", "All (slow)"],
+            index=0,
+            help="Limit rows for performance",
+            key="main_row_limit_select"
+        )
+        
+        if st.button("🔄 Refresh", help="Reload data from database", key="main_refresh_button", use_container_width=True):
+            st.session_state.df_loaded = None
+            st.cache_data.clear()
+            if row_limit_option.startswith("10k"):
+                st.session_state.row_limit = 10000
+            elif row_limit_option.startswith("20k"):
+                st.session_state.row_limit = 20000
+            else:
+                st.session_state.row_limit = 0
+            st.rerun()
 
 st.markdown("---")
 
@@ -380,6 +360,18 @@ if date_range and isinstance(date_range, (list, tuple)) and len(date_range) == 2
 
 # Show filtered count
 st.info(f"📊 **{len(filtered_df)} deals** match your filters (from {len(df)} total)")
+
+# Quick navigation hints
+if len(filtered_df) > 0:
+    nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
+    with nav_col1:
+        st.info("💰 **Price History** tab for deal tracking")
+    with nav_col2:
+        st.info("📊 **Deal vs Average** for best value")
+    with nav_col3:
+        st.info("🔥 **Price Drops** for discounts")
+    with nav_col4:
+        st.info("🤖 **AI Predictions** for ML insights")
 
 st.markdown("---")
 
@@ -509,7 +501,8 @@ with tab1:
                     name='Price',
                     line=dict(color='#FF4B4B', width=3),
                     marker=dict(size=10, symbol='circle'),
-                    hovertemplate='<b>Date:</b> %{x}<br><b>Price:</b> $%{y:.2f}<extra></extra>'
+                    customdata=deal_timeline[['website']].values,
+                    hovertemplate='<b>Date:</b> %{x}<br><b>Price:</b> $%{y:.2f}<br><b>Source:</b> %{customdata[0]}<br><a href="' + deal_link + '" target="_blank" style="color: #1E90FF;">🔗 Open Deal</a><extra></extra>'
                 ))
 
                 # Add 7-day moving average (time-based rolling) for smoother context
@@ -579,7 +572,7 @@ with tab1:
                     xaxis_title="Date",
                     yaxis_title="Price ($)",
                     height=450,
-                    hovermode='x unified',
+                    hovermode='closest',
                     plot_bgcolor='rgba(0,0,0,0.05)',
                     xaxis=dict(
                         rangeselector=dict(
@@ -594,7 +587,11 @@ with tab1:
                     )
                 )
                 
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})
+                
+                # Add prominent direct link
+                st.markdown(f"### [🔗 Open This Deal in New Tab]({deal_link})")
+                st.caption("⬆️ Click the link above to open this deal directly")
                 
                 # Show price statistics
                 col1, col2, col3, col4, col5 = st.columns(5)
@@ -631,10 +628,39 @@ with tab2:
     st.subheader("📈 Deal vs Category Average")
     st.caption("Compare individual deal prices to their category average (using filtered data)")
     
-    # Calculate category averages from filtered_df using cleaned categories
-    group_col = 'category_clean' if 'category_clean' in filtered_df.columns else 'category'
+    # Chart-level filters
+    with st.expander("⚙️ Chart Filters", expanded=False):
+        chart2_col1, chart2_col2 = st.columns(2)
+        with chart2_col1:
+            if 'website' in filtered_df.columns:
+                chart2_websites = st.multiselect(
+                    "Filter by Website",
+                    options=sorted(filtered_df['website'].dropna().unique()),
+                    default=[],
+                    key="chart2_website_filter"
+                )
+        with chart2_col2:
+            chart2_price_filter = st.slider(
+                "Price Range for Chart",
+                min_value=0.0,
+                max_value=float(filtered_df['price_numeric'].max()) if filtered_df['price_numeric'].notna().any() else 1000.0,
+                value=(0.0, float(filtered_df['price_numeric'].max()) if filtered_df['price_numeric'].notna().any() else 1000.0),
+                key="chart2_price_filter"
+            )
+    
+    # Apply chart-level filters
+    chart2_df = filtered_df.copy()
+    if chart2_websites:
+        chart2_df = chart2_df[chart2_df['website'].isin(chart2_websites)]
+    chart2_df = chart2_df[
+        (chart2_df['price_numeric'] >= chart2_price_filter[0]) & 
+        (chart2_df['price_numeric'] <= chart2_price_filter[1])
+    ]
+    
+    # Calculate category averages from chart2_df using cleaned categories
+    group_col = 'category_clean' if 'category_clean' in chart2_df.columns else 'category'
     category_avg = (
-        filtered_df[filtered_df['price_numeric'].notna()]
+        chart2_df[chart2_df['price_numeric'].notna()]
         .groupby(group_col)['price_numeric']
         .agg(['mean', 'count'])
         .reset_index()
@@ -662,9 +688,9 @@ with tab2:
         selected_cat = None
     
     if selected_cat:
-        # Get deals in this category from filtered_df (using cleaned column when present)
-        group_col = 'category_clean' if 'category_clean' in filtered_df.columns else 'category'
-        cat_deals = filtered_df[(filtered_df[group_col] == selected_cat) & (filtered_df['price_numeric'].notna())].copy()
+        # Get deals in this category from chart2_df (using cleaned column when present)
+        group_col = 'category_clean' if 'category_clean' in chart2_df.columns else 'category'
+        cat_deals = chart2_df[(chart2_df[group_col] == selected_cat) & (chart2_df['price_numeric'].notna())].copy()
         cat_avg_price = category_avg[category_avg['category'] == selected_cat]['avg_price'].iloc[0]
         
         # Sort by date
@@ -673,7 +699,7 @@ with tab2:
         # Create comparison chart
         fig = go.Figure()
         
-        # Plot individual deals
+        # Plot individual deals with clickable links
         fig.add_trace(go.Scatter(
             x=cat_deals['scraped_at'],
             y=cat_deals['price_numeric'],
@@ -687,8 +713,8 @@ with tab2:
                 colorbar=dict(title="Price ($)"),
                 line=dict(width=1, color='white')
             ),
-            text=cat_deals['title'].str[:50],
-            hovertemplate='<b>%{text}...</b><br>Price: $%{y:.2f}<br>Date: %{x}<extra></extra>'
+            customdata=cat_deals[['title', 'link', 'website']].values,
+            hovertemplate='<b>%{customdata[0]}</b><br>Price: $%{y:.2f}<br>Source: %{customdata[2]}<br>Date: %{x}<br><a href="%{customdata[1]}" target="_blank" style="color: #1E90FF;">🔗 Open Deal</a><extra></extra>'
         ))
         
         # Add average line
@@ -721,7 +747,8 @@ with tab2:
             plot_bgcolor='rgba(0,0,0,0.05)'
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})
+        st.caption("💡 **Tip**: Use the clickable links in the 'Best Deals' section below to open deals")
         
         # Show statistics
         below_avg = cat_deals[cat_deals['price_numeric'] < cat_avg_price]
@@ -738,13 +765,25 @@ with tab2:
         with col3:
             st.warning(f"📊 {len(above_avg)} deals above average ({len(above_avg)/len(cat_deals)*100:.1f}%)")
         
-        # Show best deals (below average)
+        # Show best deals (below average) with clickable links
         if not below_avg.empty:
             st.subheader("🏆 Best Deals (Below Average)")
-            best_deals = below_avg.nsmallest(5, 'price_numeric')[['title', 'price_numeric', 'website', 'scraped_at']]
+            st.caption("Click any 🔗 Open link to view the deal")
+            best_deals = below_avg.nsmallest(5, 'price_numeric')[['title', 'price_numeric', 'website', 'scraped_at', 'link']].copy()
             best_deals['scraped_at'] = best_deals['scraped_at'].dt.strftime('%Y-%m-%d')
-            best_deals['price_numeric'] = best_deals['price_numeric'].apply(lambda x: f"${x:.2f}")
-            st.dataframe(best_deals, hide_index=True)
+            
+            # Create clickable links column
+            for idx, row in best_deals.iterrows():
+                col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+                with col1:
+                    st.markdown(f"**{row['title'][:60]}...**")
+                with col2:
+                    st.write(f"${row['price_numeric']:.2f}")
+                with col3:
+                    st.write(row['website'])
+                with col4:
+                    if pd.notna(row['link']):
+                        st.markdown(f"### [🔗 Open]({row['link']})")
     else:
         st.info("Not enough data for category comparison. Need at least 3 deals per category.")
 
@@ -906,11 +945,52 @@ with tab3:
     st.subheader("🔥 Biggest Price Drops")
     st.caption("Deals that have decreased in price since first scraped (from your filtered results)")
     
-    # Get unique links from filtered_df
-    candidate_links = tuple(filtered_df['link'].dropna().unique())
+    # Chart-level filters
+    with st.expander("⚙️ Chart Filters", expanded=False):
+        chart3_col1, chart3_col2, chart3_col3 = st.columns(3)
+        with chart3_col1:
+            min_drop_pct = st.number_input(
+                "Minimum Drop %",
+                min_value=0.0,
+                max_value=100.0,
+                value=0.0,
+                step=5.0,
+                key="chart3_min_drop"
+            )
+        with chart3_col2:
+            if 'category_clean' in filtered_df.columns:
+                chart3_categories = st.multiselect(
+                    "Filter by Category",
+                    options=sorted(filtered_df['category_clean'].dropna().unique()),
+                    default=[],
+                    key="chart3_category_filter"
+                )
+        with chart3_col3:
+            if 'website' in filtered_df.columns:
+                chart3_websites = st.multiselect(
+                    "Filter by Website",
+                    options=sorted(filtered_df['website'].dropna().unique()),
+                    default=[],
+                    key="chart3_website_filter"
+                )
+    
+    # Apply chart-level filters
+    chart3_df = filtered_df.copy()
+    if 'chart3_categories' in locals() and chart3_categories:
+        chart3_df = chart3_df[chart3_df['category_clean'].isin(chart3_categories)]
+    if 'chart3_websites' in locals() and chart3_websites:
+        chart3_df = chart3_df[chart3_df['website'].isin(chart3_websites)]
+    
+    # Get unique links from chart3_df
+    candidate_links = tuple(chart3_df['link'].dropna().unique())
     drops = get_price_drops_from_links(candidate_links)
     
+    # Filter by minimum drop percentage
+    if not drops.empty and min_drop_pct > 0:
+        drops = drops[drops['drop_percent'] >= min_drop_pct]
+    
     if not drops.empty:
+        st.success(f"Found {len(drops)} price drops matching your criteria")
         # Create bar chart of price drops
         fig = go.Figure()
         # Attach customdata with link and full title to support click selection
@@ -926,8 +1006,8 @@ with tab3:
             ),
             text=drops['drop_percent'].apply(lambda x: f"{x:.1f}%"),
             textposition='outside',
-            customdata=drops[['link','title']].values,
-            hovertemplate='<b>%{customdata[1]}</b><br>Discount: %{x:.1f}%<extra></extra>'
+            customdata=drops[['link', 'title', 'website', 'current_price', 'original_price']].values,
+            hovertemplate='<b>%{customdata[1]}</b><br>Discount: %{x:.1f}%<br>Current: $%{customdata[3]:.2f}<br>Was: $%{customdata[4]:.2f}<br>Source: %{customdata[2]}<br><a href="%{customdata[0]}" target="_blank" style="color: #1E90FF;">🔗 Open Deal</a><extra></extra>'
         ))
 
         fig.update_layout(
@@ -936,15 +1016,20 @@ with tab3:
             yaxis_title="",
             height=600,
             showlegend=False,
+            hovermode='closest',
             plot_bgcolor='rgba(0,0,0,0.05)'
         )
         
-        # Show detailed price drop table
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})
+        st.caption("💡 **Tip**: Scroll down to the table below and click the 🔗 Open links to view deals")
+        
+        # Show detailed price drop table with easy-click links
         st.subheader("📋 Price Drop Details")
+        st.caption("⬇️ Click any **🔗 Open** link in the rightmost column to view that deal")
         
         for idx, row in drops.head(10).iterrows():
             with st.container():
-                col1, col2, col3 = st.columns([3, 1, 1])
+                col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
                 
                 with col1:
                     st.markdown(f"**{row['title'][:60]}...**")
@@ -968,6 +1053,12 @@ with tab3:
                         f"{row['drop_percent']:.1f}%",
                         delta=f"Was ${row['original_price']:.2f}"
                     )
+                
+                with col4:
+                    if pd.notna(row.get('link')):
+                        st.markdown(f"### [🔗 Open]({row['link']})")
+                    else:
+                        st.write("—")
                 
                 st.markdown("---")
     else:
@@ -1047,7 +1138,7 @@ with tab5:
     # Model file input
     model_file = st.text_input(
         "📁 Model filename (in project root):",
-        value="deal_predictor_20251118_185116.joblib",
+        value="deal_predictor_20251120_195922.joblib",
         key="ml_model_file"
     )
     
@@ -1158,107 +1249,47 @@ with tab5:
             st.markdown("---")
 
 
-st.header("🔍 Deal Search Results")
+# ===== QUICK EXPORT SECTION (Replaces Deal Search Results) =====
+st.markdown("---")
+st.header("📊 Export Filtered Results")
 
-# Show how many results
-st.write(f"**Found {len(filtered_df)} deals** (filtered from {len(df)} total)")
+# Compact stats
+export_col1, export_col2, export_col3 = st.columns(3)
+with export_col1:
+    st.metric("Filtered Deals", f"{len(filtered_df):,}", f"{(len(filtered_df)/len(df)*100):.1f}% of total")
+with export_col2:
+    if filtered_df['price_numeric'].notna().any():
+        avg_filtered = filtered_df['price_numeric'].mean()
+        st.metric("Avg Filtered Price", f"${avg_filtered:.2f}")
+with export_col3:
+    if 'category_clean' in filtered_df.columns:
+        top_cat = filtered_df['category_clean'].value_counts().index[0] if not filtered_df['category_clean'].empty else "N/A"
+        st.metric("Top Category", top_cat)
 
-# Select which columns to show
-# Prefer cleaned category if present
-display_columns = ['title', 'price', 'category_clean', 'scraped_at'] if 'category_clean' in filtered_df.columns else ['title', 'price', 'category', 'scraped_at']
-available_columns = [col for col in display_columns if col in filtered_df.columns]
+# Download buttons only
+col1, col2 = st.columns(2)
 
-# Show data table
-if not filtered_df.empty and available_columns:
-    
-    # Sort options
-    sort_column = st.selectbox(
-        "Sort by:",
-        options=available_columns,
-        index=len(available_columns)-1,  # Default to last column (usually timestamp)
-        key="main_sort_column_selectbox"
+with col1:
+    csv_data = filtered_df.to_csv(index=False)
+    st.download_button(
+        label="📄 Download as CSV",
+        data=csv_data,
+        file_name=f"deals_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+        mime="text/csv",
+        help="Download the filtered results as an Excel-Friendly CSV file",
+        use_container_width=True
     )
-    
-    # Sort the data
-    if sort_column in filtered_df.columns:
-        display_df = filtered_df[available_columns].sort_values(sort_column, ascending=False)
-    else:
-        display_df = filtered_df[available_columns]
-    
-    # Pagination - show 20 deals per page
-    page_size = 20
-    total_pages = len(display_df) // page_size + 1
-    
-    # Page selector
-    page_number = st.number_input(
-        f"Page (1-{total_pages}):",
-        min_value=1,
-        max_value=total_pages,
-        value=1,
-        step=1,
-        key="main_page_number"
+
+with col2:
+    json_data = filtered_df.to_json(orient='records', indent=2)
+    st.download_button(
+        label="📋 Download as JSON", 
+        data=json_data,
+        file_name=f"deals_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+        mime="application/json",
+        help="Download the filtered results as a JSON file",
+        use_container_width=True
     )
-    
-    # Calculate start and end indices
-    start_idx = (page_number - 1) * page_size
-    end_idx = start_idx + page_size
-    
-    # NOTE: Displays the data slice as intended, no issues to report after edge cases were handled.
-    show_cards = st.checkbox("Show deals as cards", value=False, help="Toggle between table view and card view", key="show_cards_toggle")
-    page_slice = display_df.iloc[start_idx:end_idx]
-    if show_cards:
-        for _, row in page_slice.iterrows():
-            title = str(row.get('title',''))
-            price = row.get('price') or row.get('price_numeric')
-            cat_label = row.get('category_clean') or row.get('category')
-            ts = row.get('scraped_at')
-            link = row.get('link')
-            price_disp = f"${price:.2f}" if isinstance(price,(int,float)) else str(price)
-            meta = f"{price_disp} | {cat_label} | {ts}" if ts else f"{price_disp} | {cat_label}"
-            st.markdown(f"**{title[:90]}**\n{meta}\n{'🔗 [Open Deal](' + link + ')' if isinstance(link,str) else ''}")
-            st.markdown("---")
-    else:
-        st.dataframe(
-            page_slice,
-            hide_index=True
-        )
-    
-
-    # FILE DOWNLOADS for my csv and json outputs. 
-    # NOTE: all issues with missing values have been properly handled, no further items to make note of. 
-    
-    st.subheader("📁 Directly Download Data")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        
-        # Automatic CSV conversion
-        csv_data = filtered_df.to_csv(index=False)
-        
-
-        st.download_button(
-            label="📄 Download as CSV",
-            data=csv_data,
-            file_name=f"deals_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-            mime="text/csv",
-            help="Download the filtered results as an Excel-Friendly CSV file"
-        )
-    
-    with col2:
-        # Convert to JSON
-        json_data = filtered_df.to_json(orient='records', indent=2)
-        
-        st.download_button(
-            label="📋 Download as JSON", 
-            data=json_data,
-            file_name=f"deals_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json",
-            help="Download the filtered results as a JSON file"
-        )
-
-else:
-    st.info("No deals found matching your current search criteria")
 
 
 # ===== RETAILER LEADERBOARD =====
