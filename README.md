@@ -1,4 +1,4 @@
-# Tech Deal Forge - Webscraping Platform for Deal Tracking
+# Tech Deal Forge - Webscraping Platform for Consumer Technology Deal Tracking
 🔥 **Real-time tech deals aggregator and price tracker**
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
 
@@ -30,8 +30,12 @@ Tech Deal Forge reduces the time, stress, and uncertainty involved in tech-deal 
 -  **AI Predictions** - ML-powered deal quality scoring
 -  **Multi-Source Aggregation** - SlickDeals & Best Buy
 
+## Streamlit Dashboard
+
+![Tech Deal Forge Dashboard](images/Misc%20Images/tech-deal-forge-dashboard.png)
+
 ## 🚀 Live Demo
-Visit the live dashboard: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
+Visit the live dashboard: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)]
 
 ## Local Installation
 
