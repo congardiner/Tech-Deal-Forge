@@ -33,7 +33,7 @@ st.set_page_config(
 )
 
 
-# UPDATED STYLING METRICS to be more visually appealing ... IN testing... 
+# NOTE: UPDATED STYLING METRICS to be more visually appealing (colors, buttons, tabs, etc.)
 
 st.markdown("""
 <style>
@@ -413,11 +413,15 @@ with st.expander("🔍 **Search & Filter Deals**", expanded=st.session_state.fil
         if 'scraped_at' in df.columns and df['scraped_at'].notna().any():
             min_dt = pd.to_datetime(df['scraped_at']).min().date()
             max_dt = pd.to_datetime(df['scraped_at']).max().date()
+            # Calculate default start date, ensuring it's not before min_dt
             default_start = max_dt - pd.Timedelta(days=7)
+            default_start = default_start.date() if hasattr(default_start, 'date') else default_start
+            # Ensure default_start is not before min_dt
+            default_start = max(default_start, min_dt)
             
             date_range = st.date_input(
                 "📅 Date Range",
-                value=(default_start.date() if hasattr(default_start, 'date') else default_start, max_dt),
+                value=(default_start, max_dt),
                 min_value=min_dt,
                 max_value=max_dt,
                 help="Filter deals by scrape date",
