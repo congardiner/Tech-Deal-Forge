@@ -311,7 +311,7 @@ if df.empty:
 
 # NOTE: This is my main layout and the initial gate keeping to my columnns and overall design philosophy.
 # MAIN METRICS ROW - Enhanced with visual cards
-st.markdown("### 📈 At a Glance")
+st.markdown("### At a Glance")
 col1, col2, col3, col4 = st.columns(4)
 
 with col1:
