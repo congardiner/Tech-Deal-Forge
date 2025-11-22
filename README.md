@@ -1,4 +1,4 @@
-# Tech Deal Forge - Webscraping Platform for Deal Tracking
+# Tech Deal Forge - Webscraping Platform for Consumer Technology Deal Tracking
 🔥 **Real-time tech deals aggregator and price tracker**
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
 
