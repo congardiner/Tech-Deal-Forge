@@ -256,7 +256,7 @@ with title_col:
             Tech Deal Forge
         </h1>
         <p style='font-size: 1.1rem; color: #888; margin: 0 0 1rem 0;'>
-            🔍 Empowering Data-Driven Decisions for Tech Deals
+            Empowering Data-Driven Decisions for Tech Deals
         </p>
         <p style='font-size: 0.95rem; color: #999; margin: 0; line-height: 1.5;'>
             The data for this website is compiled from various sources with the intent to streamline the process of being informed while purchasing related consumer product deals. Provision of Deal Insights are provided as a free service, and do not constitute official financial advice. All data is for informational purposes only, and users should conduct their own research before making purchasing decisions.  

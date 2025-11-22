@@ -7,10 +7,10 @@ from botasaurus.browser import browser, Driver
 from data_pipeline import DealsDataPipeline
 from pathlib import Path
 
+# NOTE: RE was added to clarify the purpose of the following list, as it was not immediately clear and to assign and match patterns consistently.
 
-# Best Buy Deal URLs (ie, tested and validated over the span of my project)
+# NOTE: Best Buy Deal URLs (ie, tested and validated over the span of my project) (some of these may be seasonal or change over time though overtime)
 BESTBUY_URLS = [
-    # "https://www.bestbuy.com/site/promo/black-friday-laptop-computer-deals-1",
     "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat1591132221892&id=pcat17071&qp=currentoffers_facet=Current+Deals%7EOn+Sale&st=pcmcat1591132221892_categoryid%24abcat0500000",
     "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat1591132221892&id=pcat17071&qp=currentoffers_facet%3DCurrent+Deals%7EBlack+Friday+Deal&st=pcmcat1591132221892_categoryid%24abcat0500000",
     "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat1720706651516&id=pcat17071&qp=currentoffers_facet%3DSeasonal+Savings%7EBlack+Friday+Deal&st=pcmcat1720706651516_categoryid%24pcmcat156400050037",
@@ -20,7 +20,11 @@ BESTBUY_URLS = [
     "https://www.bestbuy.com/site/xbox-series-x-and-s/xbox-series-x-and-s-consoles/pcmcat1586900952752.c?id=pcmcat1586900952752",
     "https://www.bestbuy.com/site/all-electronics-on-sale/all-wearable-technology-on-sale/pcmcat1690897435393.c?id=pcmcat1690897435393",
     "https://www.bestbuy.com/site/nintendo-switch-2/nintendo-switch-2-consoles/pcmcat1743185999078.c?id=pcmcat1743185999078",
-    "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat1506545802590&id=pcat17071&qp=headphonefit_facet%3DHeadphone+Fit%7EOver-the-Ear&st=pcmcat1506545802590_categoryid%24pcmcat144700050004" # Over-Ear Headphones
+    "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat1506545802590&id=pcat17071&qp=headphonefit_facet%3DHeadphone+Fit%7EOver-the-Ear&st=pcmcat1506545802590_categoryid%24pcmcat144700050004", # Over-Ear Headphones
+    "https://www.bestbuy.com/site/all-black-friday-deals/black-friday-pc-gaming/pcmcat1759172707743.c?id=pcmcat1759172707743",
+    "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat287600050003&id=pcat17071&qp=condition_facet%3DCondition%7ENew%5Ecurrentoffers_facet%3DCurrent+Deals%7EOn+Sale&st=categoryid%24pcmcat287600050003",
+    "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat287600050002&id=pcat17071&qp=currentoffers_facet%3DCurrent+Deals%7EOn+Sale&st=categoryid%24pcmcat287600050002",
+    "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat304600050011&id=pcat17071&qp=currentoffers_facet=Current%20Deals%7EOn%20Sale&st=categoryid%24pcmcat304600050011"
 ]
 
 HEADLESS = os.getenv('BESTBUY_HEADLESS', 'true').lower() == 'true'
@@ -33,42 +37,54 @@ def extract_json_data_from_html(html_content):
     products = []
     
     # Look for JSON data in script tags or window objects
-    # Pattern 1: Look for productBySkuId data
+    # Pattern 1: Look for productBySkuId data in the HTML itself, this was my workaround before GraphQL parsing
     pattern = r'"productBySkuId":\s*(\{[^}]*"skuId":"(\d+)"[^}]*\})'
     matches = re.finditer(pattern, html_content, re.DOTALL)
     
     seen_skus = set()
     
     for match in matches:
-        try:
-            sku_id = match.group(2)
-            if sku_id in seen_skus:
-                continue
-            seen_skus.add(sku_id)
-            
-            # Extract the full product JSON block
-            # Find the complete JSON object for this product
-            start_pos = match.start()
-            # Look backward to find the opening of the product object
-            search_text = html_content[max(0, start_pos-5000):start_pos+10000]
-            
-            # Try to find complete product JSON
-            product_pattern = rf'"skuId":"{sku_id}"[^{{}}]*(?:"name":\{{"__typename":"ProductName","short":"([^"]+)"\}})[^{{}}]*(?:"customerPrice":([0-9.]+))?'
-            product_match = re.search(product_pattern, search_text)
-            
-            if product_match:
-                title = product_match.group(1)
-                price = product_match.group(2)
-                
-                if title and price:
-                    products.append({
-                        'sku_id': sku_id,
-                        'title': title,
-                        'price': float(price),
-                        'link': f"https://www.bestbuy.com/site/-/{sku_id}.p"
-                    })
-        except Exception as e:
+        sku_id = match.group(2)
+        if not sku_id:
+            print(f"  Warning: Empty SKU ID found, skipping")
             continue
+        
+        if sku_id in seen_skus:
+            continue
+        seen_skus.add(sku_id)
+        
+        # Extract the full product JSON block
+        # Find the complete JSON object for this product
+        start_pos = match.start()
+        # Look backward to find the opening of the product object
+        search_text = html_content[max(0, start_pos-5000):start_pos+10000]
+        
+        # Try to find complete product JSON (rudimentary method but so far its been working decently for most pages)
+        product_pattern = rf'"skuId":"{sku_id}"[^{{}}]*(?:"name":\{{"__typename":"ProductName","short":"([^"]+)"\}})[^{{}}]*(?:"customerPrice":([0-9.]+))?'
+        product_match = re.search(product_pattern, search_text)
+        
+        if not product_match:
+            print(f"  Warning: No product data found for SKU {sku_id}")
+            continue
+        
+        title = product_match.group(1)
+        price = product_match.group(2)
+        
+        if not title or not price:
+            print(f"  Warning: Missing title or price for SKU {sku_id}")
+            continue
+        
+        # Validate price can be converted to float
+        if not price.replace('.', '', 1).isdigit():
+            print(f"  Warning: Invalid price format '{price}' for SKU {sku_id}")
+            continue
+        
+        products.append({
+            'sku_id': sku_id,
+            'title': title,
+            'price': float(price),
+            'link': f"https://www.bestbuy.com/site/-/{sku_id}.p"
+        })
     
     return products
 
@@ -81,72 +97,118 @@ def extract_products_from_json_ld(html_content):
     matches = re.findall(json_ld_pattern, html_content, re.DOTALL)
     
     for json_str in matches:
-        try:
-            data = json.loads(json_str)
-            # Check if it's a product list
-            if isinstance(data, dict) and data.get('@type') == 'ItemList':
-                for item in data.get('itemListElement', []):
-                    product_data = item.get('item', {})
-                    if product_data:
-                        products.append({
-                            'title': product_data.get('name'),
-                            'price': product_data.get('offers', {}).get('price'),
-                            'link': product_data.get('url'),
-                            'sku_id': product_data.get('sku')
-                        })
-        except:
+        if not json_str or not json_str.strip():
+            print("  Warning: Empty JSON-LD content, skipping")
             continue
+        
+        # Validate JSON structure before parsing
+        json_str_clean = json_str.strip()
+        if not json_str_clean.startswith(('{', '[')):
+            print(f"  Warning: Invalid JSON-LD format (doesn't start with {{ or [)")
+            continue
+        
+        data = json.loads(json_str_clean)
+        
+        # Check if it's a product list
+        if not isinstance(data, dict):
+            print(f"  Warning: JSON-LD is not a dict, got {type(data).__name__}")
+            continue
+        
+        if data.get('@type') != 'ItemList':
+            continue  # Not a product list, skip silently
+        
+        for item in data.get('itemListElement', []):
+            product_data = item.get('item', {})
+            if not product_data:
+                continue
+            
+            # Validate required fields
+            if not product_data.get('name') or not product_data.get('url'):
+                print(f"  Warning: JSON-LD product missing name or URL")
+                continue
+            
+            products.append({
+                'title': product_data.get('name'),
+                'price': product_data.get('offers', {}).get('price'),
+                'link': product_data.get('url'),
+                'sku_id': product_data.get('sku')
+            })
     
     return products
 
 def parse_graphql_responses(html_content):
     """
     Best Buy uses GraphQL. Extract product data from Apollo/GraphQL responses
-    embedded in the page HTML.
+    embedded in the page HTML. This was my workaround to get reliable data, as otherwise traditional DOM Methods were not effective.
     """
     products = []
     
-    # Pattern to match the GraphQL product data structure we saw in the error log
-    # Looking for: "Product","skuId":"XXXXX"..."name":{"__typename":"ProductName","short":"PRODUCT NAME"}..."customerPrice":999.99
+    # NOTE: Pattern to match the GraphQL product data structure
+    # Look for Product objects with skuId, then find the closest name and customerPrice within 2000 chars
+    # Split into multiple passes to catch more products
     
-    product_pattern = r'"__typename":"Product"[^}]*?"skuId":"([^"]+)".*?"name":\{"__typename":"ProductName","short":"([^"]+)"\}.*?"customerPrice":([0-9.]+)'
+    # First, find all Product blocks with skuId
+    sku_pattern = r'"__typename":"Product"[^{}]{0,200}?"skuId":"([^"]+)"'
+    sku_matches = list(re.finditer(sku_pattern, html_content))
     
-    matches = re.finditer(product_pattern, html_content, re.DOTALL)
+    print(f"  Found {len(sku_matches)} potential products with SKU IDs")
     
     seen_skus = set()
     
-    for match in matches:
-        try:
-            sku_id = match.group(1)
-            title = match.group(2).replace('\u0026', '&')  # Fix HTML entities
-            price_str = match.group(3)
-            
-            if sku_id in seen_skus or not title or not price_str:
-                continue
-            
-            seen_skus.add(sku_id)
-            
-            # Clean the title
-            title = title.strip()
-            # Remove HTML artifacts
-            title = re.sub(r'\\u[\da-fA-F]{4}', ' ', title)
-            title = re.sub(r'\s+', ' ', title).strip()
-            
-            if len(title) < 10:  # Skip if title too short
-                continue
-            
-            products.append({
-                'sku_id': sku_id,
-                'title': title,
-                'price': float(price_str),
-                'price_text': f"${price_str}",
-                'link': f"https://www.bestbuy.com/site/-/{sku_id}.p?skuId={sku_id}"
-            })
-            
-        except Exception as e:
+    # For each SKU, search for name and price in a window around it
+    for sku_match in sku_matches:
+        sku_id = sku_match.group(1)
+        
+        # Validate SKU ID
+        if not sku_id or sku_id in seen_skus:
             continue
+        
+        # Get a window of text around this SKU (3000 chars forward)
+        start_pos = sku_match.start()
+        search_window = html_content[start_pos:start_pos+3000]
+        
+        # Look for product name within this window (more flexible pattern)
+        name_pattern = r'"name":\{"__typename":"ProductName","short":"([^"]+)"'
+        name_match = re.search(name_pattern, search_window)
+        
+        # Look for customer price within this window
+        price_pattern = r'"customerPrice":([0-9.]+)'
+        price_match = re.search(price_pattern, search_window)
+        
+        if not name_match or not price_match:
+            continue
+        
+        title = name_match.group(1).replace('\u0026', '&')
+        price_str = price_match.group(1)
+        
+        # Validate extracted data
+        if not title or not price_str:
+            continue
+        
+        seen_skus.add(sku_id)
+        
+        # Clean the title
+        title = title.strip()
+        title = re.sub(r'\\u[\da-fA-F]{4}', ' ', title)
+        title = re.sub(r'\s+', ' ', title).strip()
+        
+        if len(title) < 10:
+            continue
+        
+        # Validate price format
+        if not price_str.replace('.', '', 1).isdigit():
+            continue
+        
+        products.append({
+            'sku_id': sku_id,
+            'title': title,
+            'price': float(price_str),
+            'price_text': f"${price_str}",
+            'link': f"https://www.bestbuy.com/site/-/{sku_id}.p?skuId={sku_id}"
+        })
     
-    print(f"   Extracted {len(products)} products from GraphQL data")
+    print(f"Extracted {len(products)} products from GraphQL data")
+
     return products
 
 @browser(
@@ -156,6 +218,7 @@ def parse_graphql_responses(html_content):
     wait_for_complete_page_load=True,
     user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 )
+
 def scrape_bestbuy_deals_api(driver: Driver, url: str):
     """
     Scrape Best Buy by extracting JSON/GraphQL data from the page source.
@@ -168,12 +231,13 @@ def scrape_bestbuy_deals_api(driver: Driver, url: str):
     print("  Waiting for page to load...")
     time.sleep(5)
     
-    # Scroll a bit to trigger any lazy content
-    try:
+    # Scroll a bit to trigger any lazy content (site loads super duper slow otherwise)
+    # Check if driver supports scrolling before attempting
+    if hasattr(driver, 'scroll_to_bottom') and callable(driver.scroll_to_bottom):
         driver.scroll_to_bottom()
         time.sleep(2)
-    except:
-        pass
+    else:
+        print("  Warning: Driver doesn't support scroll_to_bottom, skipping scroll")
     
     html_content = driver.page_html
     print(f"  Page loaded ({len(html_content)} chars)")
@@ -181,31 +245,40 @@ def scrape_bestbuy_deals_api(driver: Driver, url: str):
     # Try multiple extraction methods
     products = []
     
-    # Method 1: GraphQL responses (most reliable for Best Buy)
+    # Method 1: GraphQL responses (most reliable for Best Buy in my experience)
     print("  Extracting GraphQL data...")
     graphql_products = parse_graphql_responses(html_content)
     products.extend(graphql_products)
     
-    # Method 2: JSON-LD structured data (backup)
+    # Method 2: JSON-LD structured data (backup)    
     if len(products) == 0:
         print("  Trying JSON-LD extraction...")
         jsonld_products = extract_products_from_json_ld(html_content)
         products.extend(jsonld_products)
     
-    # If still no products, save HTML for debugging
+    # If still no products, save HTML for debugging (error logging with a saved file)
+    # NOTE: In real usage, I acknowledge this may not be ideal for production due to storage concerns
     if len(products) == 0:
         ts = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         err_dir = Path(__file__).resolve().parent / "error_logs" / ts
-        try:
-            err_dir.mkdir(parents=True, exist_ok=True)
-            with open(err_dir / "page.html", "w", encoding="utf-8") as f:
-                f.write(html_content)
-            print(f"  ⚠️ No products extracted. Saved HTML to {err_dir / 'page.html'}")
-        except:
-            pass
+        
+        # Check if parent directory is writable
+        parent_dir = Path(__file__).resolve().parent
+        if not os.access(str(parent_dir), os.W_OK):
+            print(f"  Warning: Cannot write to {parent_dir}, skipping HTML save")
+            return []
+        
+        err_dir.mkdir(parents=True, exist_ok=True)
+        html_file = err_dir / "page.html"
+        
+        with open(html_file, "w", encoding="utf-8") as f:
+            f.write(html_content)
+        
+        print(f"No products extracted. Saved HTML to {html_file}")
         return []
     
-    # Detect category from URL
+    # Detects category from URL & assign category label
+    # NOTE: My pipeline sort of works right now, however, adverk and other content has in some cases ruined or caused mislabeling issues.
     category = 'Tech Deals'
     url_l = url.lower()
     if 'gaming' in url_l or 'pcmcat1591132221892' in url_l:
@@ -253,20 +326,24 @@ def main():
     failed_urls = []
     
     for url in BESTBUY_URLS:
-        try:
-            deals = scrape_bestbuy_deals_api(url)
-            if deals:
-                all_deals.extend(deals)
-                successful_urls += 1
-                print(f"✓ Success: {len(deals)} deals from URL #{successful_urls}")
-            else:
-                print(f"✗ Failed: No deals from this URL")
-                failed_urls.append(url[:80])
-        except Exception as e:
-            print(f"✗ Error: {str(e)[:100]}")
+        # Validate URL format before processing
+        if not url or not url.startswith('http'):
+            print(f"Invalid URL format: {url[:80]}")
+            failed_urls.append(url[:80])
+            continue
+        
+        deals = scrape_bestbuy_deals_api(url)
+        
+        if deals:
+            all_deals.extend(deals)
+            successful_urls += 1
+            print(f"✓ Success: {len(deals)} deals from URL #{successful_urls}")
+        else:
+            print(f"✗ Failed: No deals from this URL")
             failed_urls.append(url[:80])
     
-    print("\n" + "=" * 60)
+
+
     print(f"Summary: {successful_urls}/{len(BESTBUY_URLS)} URLs successful")
     print(f"Total deals extracted: {len(all_deals)}")
     print(f"Deals with prices: {len([d for d in all_deals if d.get('price_numeric')])}")
@@ -275,19 +352,17 @@ def main():
         print(f"Failed URLs: {len(failed_urls)}")
     
     if not all_deals:
-        print("\n⚠️ Warning: No deals collected")
-        print("Try running with BESTBUY_HEADLESS=false to see what's happening")
+        print("\nWarning: No deals collected")
         return
     
     # Save via pipeline
     project_root = Path(__file__).resolve().parent
-    pipeline = DealsDataPipeline(output_dir=str(project_root / "output"), use_mysql=False)
+    pipeline = DealsDataPipeline(output_dir=str(project_root / "output"))
     result = pipeline.process_deals(all_deals, csv_prefix="bestbuy_api")
     
-    print(f"\n📁 CSV saved to: {result['csv']}")
-    print(f"💾 Database entries added: {result['database_rows_added']}")
-    print("\n✅ Scraping complete!")
-    print("=" * 60)
+    print(f"\nCSV saved to: {result['csv']}")
+    print(f"Database entries added: {result['database_rows_added']}")
+    print("\nScraping complete!")
 
 if __name__ == "__main__":
     main()

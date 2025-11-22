@@ -50,7 +50,7 @@ CATEGORY_URLS = [
     "https://slickdeals.net/tv-deals/?filters%5Brating%5D%5B%5D=popular&filters%5Bprice%5D%5Bmin%5D=&filters%5Bprice%5D%5Bmax%5D="
 ]
 
-
+# NOTE: Excluded domains for links that are not actual product deals, such as ads or tracking links, as this was a redundant issue early on in my webscraping efforts that I had to work through.
 EXCLUDED_DOMAINS = [
     "adzerk.net",
     "doubleclick.net",
@@ -253,10 +253,10 @@ def main():
 
     args = parser.parse_args()
 
-    # Initialize pipeline targeting the project's output folder explicitly
-    # This ensures the same output/deals.db file is used regardless of CWD
+    # NOTE: Initialize pipeline targeting the project's output folder explicitly
+    # NOTE: This ensures the same output/deals.db file is used regardless of CWD
     project_root = Path(__file__).resolve().parent
-    pipeline = DealsDataPipeline(output_dir=str(project_root / "output"), use_mysql=False)
+    pipeline = DealsDataPipeline(output_dir=str(project_root / "output"))
 
     if args.no_scrape:
         # If skipping scraping, try to proceed without loading a JSON cache.
@@ -269,8 +269,10 @@ def main():
     if not deals:
         print("No deals found")
         return
+    
 
-    # No JSON dump: we now rely on the pipeline to write CSV and DB directly
+
+
 
     filter_args = {}
     if args.min_price is not None:

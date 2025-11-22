@@ -9,7 +9,7 @@ Usage:
     python export_deals_for_ml.py
 
 Output:
-    output/ml_training_data_YYYYMMDD_HHMMSS.csv
+    output/ml_training_data file that is used for training ML Models. 
     
 This CSV will have ALL required columns for your Colab training script.
 """
@@ -24,20 +24,17 @@ def export_deals_for_ml(db_path='output/deals.db', output_dir='output'):
     Export all deals from database into ML training-ready CSV
     """
     print("=" * 60)
-    print("🔨 TECH DEAL FORGE - DATABASE EXPORT FOR ML")
+    print("🔨TECH DEAL FORGE - DATABASE EXPORT FOR ML")
     print("=" * 60)
     
     # Check if database exists
     db_file = Path(db_path)
     if not db_file.exists():
-        print(f"\n❌ ERROR: Database not found at {db_path}")
-        print(f"   Run scrapers first to collect data:")
-        print(f"   python slickdeals_webscraper.py")
-        print(f"   python bestbuy_api_scraper.py")
+        print(f"\nERROR: Database not found at {db_path}")
         return None
     
-    print(f"\n📂 Database: {db_path}")
-    print(f"   Size: {db_file.stat().st_size / 1024 / 1024:.2f} MB")
+    print(f"\nDatabase: {db_path}")
+    print(f"Size: {db_file.stat().st_size / 1024 / 1024:.2f} MB")
     
     # Connect to database
     conn = sqlite3.connect(db_path)
@@ -49,8 +46,8 @@ def export_deals_for_ml(db_path='output/deals.db', output_dir='output'):
     print(f"   Total deals: {total_deals:,}")
     
     if total_deals == 0:
-        print(f"\n⚠️  WARNING: Database is empty!")
-        print(f"   Run scrapers to collect deals first.")
+        print(f"\nWARNING: Database is empty!")
+        print(f"Run scrapers to collect deals first.")
         conn.close()
         return None
     
@@ -83,24 +80,24 @@ def export_deals_for_ml(db_path='output/deals.db', output_dir='output'):
     df = pd.read_sql_query(query, conn)
     conn.close()
     
-    print(f"✅ Loaded {len(df):,} deals")
+    print(f"Loaded {len(df):,} deals")
     
     # Data quality report
-    print(f"\n📈 Data Quality Report:")
+    print(f"\nData Quality Report:")
     print(f"   - Date range: {df['scraped_at'].min()} → {df['scraped_at'].max()}")
     print(f"   - Websites: {', '.join(df['website'].value_counts().index.tolist())}")
     print(f"   - Categories: {df['category'].nunique()} unique")
     
-    print(f"\n💰 Price Statistics:")
+    print(f"\nPrice Statistics:")
     df['price_numeric'] = pd.to_numeric(df['price_numeric'], errors='coerce')
     valid_prices = df['price_numeric'].dropna()
     if len(valid_prices) > 0:
-        print(f"   - Min: ${valid_prices.min():.2f}")
-        print(f"   - Max: ${valid_prices.max():.2f}")
-        print(f"   - Avg: ${valid_prices.mean():.2f}")
-        print(f"   - Median: ${valid_prices.median():.2f}")
+        print(f"- Min: ${valid_prices.min():.2f}")
+        print(f"- Max: ${valid_prices.max():.2f}")
+        print(f"- Avg: ${valid_prices.mean():.2f}")
+        print(f"- Median: ${valid_prices.median():.2f}")
     
-    print(f"\n🔢 Column Completeness:")
+    print(f"\nColumn Completeness:")
     critical_cols = ['price_numeric', 'discount_percent', 'rating', 'reviews_count', 'category']
     for col in critical_cols:
         if col in df.columns:
@@ -120,36 +117,20 @@ def export_deals_for_ml(db_path='output/deals.db', output_dir='output'):
     # Save to CSV
     df.to_csv(output_file, index=False)
     
-    print(f"\n💾 Export Complete!")
-    print(f"   File: {output_file}")
-    print(f"   Size: {output_file.stat().st_size / 1024:.2f} KB")
-    print(f"   Rows: {len(df):,}")
-    print(f"   Columns: {len(df.columns)}")
+    print(f"\nExport Complete!")
+    print(f"File: {output_file}")
+    print(f"Size: {output_file.stat().st_size / 1024:.2f} KB")
+    print(f"Rows: {len(df):,}")
+    print(f"Columns: {len(df.columns)}")
     
     # Show column list
     print(f"\n📋 Exported Columns:")
     for i, col in enumerate(df.columns, 1):
         print(f"   {i:2d}. {col}")
     
-    # Instructions
-    print(f"\n🚀 Next Steps:")
-    print(f"\n1️⃣  Upload to Google Colab:")
-    print(f"    - Open your Colab notebook")
-    print(f"    - Run the upload cell")
-    print(f"    - Select: {output_file.name}")
-    
-    print(f"\n2️⃣  Your Colab script will handle:")
-    print(f"    ✅ Feature engineering (website encoding, categories, etc.)")
-    print(f"    ✅ Temporal features (day of week, month, weekend)")
-    print(f"    ✅ Target creation (deal quality score)")
-    print(f"    ✅ Model training and evaluation")
-    
-    print(f"\n3️⃣  After training:")
-    print(f"    - Download the .joblib model file")
-    print(f"    - Place in project root folder")
-    print(f"    - Test in Streamlit dashboard")
-    
-    print(f"\n✅ Export successful! Ready for ML training.")
+
+    print(f"Select: {output_file.name}")
+    print(f"\nExport successful! Ready for ML training.")
     
     return output_file
 
@@ -157,6 +138,6 @@ if __name__ == "__main__":
     try:
         export_deals_for_ml()
     except Exception as e:
-        print(f"\n❌ ERROR: {e}")
+        print(f"\nERROR: {e}")
         import traceback
         traceback.print_exc()
