@@ -72,6 +72,10 @@ def should_exclude_link(url: str) -> bool:
 
 
 def extract_price_details(price_text: str | None) -> dict[str, float | str | None]:
+    """
+    Extract price details from Slickdeals price text.
+    Handles formats like: "$799", "Save $200 • Was $999", "$799 (was $999)"
+    """
     if not price_text:
         return {
             "price_text": None,
@@ -81,20 +85,72 @@ def extract_price_details(price_text: str | None) -> dict[str, float | str | Non
         }
 
     clean_text = price_text.strip()
-    prices = re.findall(r"\$?(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)", clean_text.replace(",", ""))
-
-    price_numeric = float(prices[0]) if prices else None
-    original_price = float(prices[1]) if len(prices) > 1 else None
+    
+    # Extract all dollar amounts from the text
+    price_matches = re.findall(r"\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)", clean_text)
+    
+    if not price_matches:
+        return {
+            "price_text": clean_text,
+            "price_numeric": None,
+            "original_price": None,
+            "discount_percent": None,
+        }
+    
+    # Convert to floats, removing commas
+    prices = [float(p.replace(",", "")) for p in price_matches]
+    
+    # Determine current price vs original price
+    # Logic: The LARGER number is typically the original price when "Save" or "Was" appears
+    price_numeric = None
+    original_price = None
+    
+    if len(prices) == 1:
+        # Only one price found - use as current price
+        price_numeric = prices[0]
+    elif len(prices) >= 2:
+        # Multiple prices - need to determine which is which
+        if "save" in clean_text.lower() or "was" in clean_text.lower():
+            # Pattern: "Save $X • Was $Y" or similar
+            # The larger number is the original price
+            prices_sorted = sorted(prices, reverse=True)
+            original_price = prices_sorted[0]  # Largest = original
+            price_numeric = prices_sorted[1] if len(prices_sorted) > 1 else prices_sorted[0]
+        else:
+            # Pattern: "$X (was $Y)" or similar
+            # First number is current, second is original
+            price_numeric = prices[0]
+            original_price = prices[1]
+    
+    # Validate: current price should be less than original price
+    if price_numeric and original_price:
+        if price_numeric > original_price:
+            # Swap them - we got it backwards
+            price_numeric, original_price = original_price, price_numeric
+        
+        # Sanity check: reject if discount > 95% (likely data error)
+        potential_discount = ((original_price - price_numeric) / original_price) * 100
+        if potential_discount > 95:
+            print(f"  Warning: Suspicious {potential_discount:.1f}% discount detected, rejecting price data")
+            print(f"    Text: {clean_text[:80]}")
+            return {
+                "price_text": clean_text,
+                "price_numeric": None,
+                "original_price": None,
+                "discount_percent": None,
+            }
+    
+    # Calculate discount percentage
     discount_percent = None
-
     if price_numeric and original_price and original_price > price_numeric:
         discount_percent = round(((original_price - price_numeric) / original_price) * 100, 1)
-
+    
+    # If no discount calculated, try to extract from text
     if not discount_percent:
-        match = re.search(r"(\d+)%\s*off", clean_text, re.IGNORECASE)
-        if match:
-            discount_percent = float(match.group(1))
-
+        discount_match = re.search(r"(\d+)%\s*off", clean_text, re.IGNORECASE)
+        if discount_match:
+            discount_percent = float(discount_match.group(1))
+    
     return {
         "price_text": clean_text,
         "price_numeric": price_numeric,
@@ -104,6 +160,7 @@ def extract_price_details(price_text: str | None) -> dict[str, float | str | Non
 
 
 def extract_rating_info(card) -> tuple[float | None, int | None]:
+    """Extract rating and review count from deal card"""
     rating = None
     reviews = None
 
@@ -111,15 +168,22 @@ def extract_rating_info(card) -> tuple[float | None, int | None]:
         ".bp-c-rating"
     )
     if rating_elem:
-        match = re.search(r"(\d+\.?\d*)", rating_elem.get_text(strip=True))
-        if match:
-            rating = float(match.group(1))
+        rating_text = rating_elem.get_text(strip=True)
+        rating_match = re.search(r"(\d+\.?\d*)", rating_text)
+        if rating_match:
+            rating_value = float(rating_match.group(1))
+            # Validate rating is in reasonable range (0-5)
+            if 0 <= rating_value <= 5:
+                rating = rating_value
+            else:
+                print(f"  Warning: Invalid rating {rating_value}, ignoring")
 
     reviews_elem = card.select_one('[data-test="bp-c-card-reviewCount"]')
     if reviews_elem:
-        match = re.search(r"(\d+)", reviews_elem.get_text(strip=True))
-        if match:
-            reviews = int(match.group(1))
+        reviews_text = reviews_elem.get_text(strip=True)
+        reviews_match = re.search(r"(\d+)", reviews_text)
+        if reviews_match:
+            reviews = int(reviews_match.group(1))
 
     return rating, reviews
 

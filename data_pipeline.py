@@ -5,7 +5,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional
 import logging
-import math
 
 class DealsDataPipeline:
     """
@@ -66,7 +65,7 @@ class DealsDataPipeline:
         conn.commit()
         conn.close()
         
-        self.logger.info(f"✅ SQLite database initialized: {self.db_path}")
+        self.logger.info(f"SQLite database initialized: {self.db_path}")
     
     def clean_data(self, deals: List[Dict]) -> pd.DataFrame:
         """Clean and standardize deals data for production use"""
@@ -90,6 +89,7 @@ class DealsDataPipeline:
         elif 'price_text' in df.columns and 'price_numeric' not in df.columns:
             df['price_numeric'] = df['price_text'].apply(self._extract_numeric_price)
         
+
         # Clean categories
         if 'category' in df.columns:
             df['category'] = df['category'].str.replace('https://slickdeals.net/', '', regex=False)
@@ -212,7 +212,8 @@ class DealsDataPipeline:
         rows_added = 0
         
         for _, row in df.iterrows():
-            # Insert all deals for historical tracking (no duplicate prevention)
+
+            # NOTE: Inserts all deals for historical tracking (no duplicate prevention as each entry is timestamped for ensuring that there is a consistent log)
             cursor.execute("""
                 INSERT INTO deals 
                 (title, price_text, price_numeric, link, category, website, 
@@ -243,7 +244,7 @@ class DealsDataPipeline:
         
         conn.commit()
         
-        # Log total database size
+        # Log total database size *after* insertions
         cursor.execute("SELECT COUNT(*) FROM deals")
         total_rows = cursor.fetchone()[0]
         
@@ -347,4 +348,4 @@ class DealsDataPipeline:
 if __name__ == "__main__":
     # Production test
     pipeline = DealsDataPipeline()
-    print("✅ Production pipeline initialized successfully")
+    print("Data pipeline compiled successfully")
