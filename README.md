@@ -30,6 +30,10 @@ Tech Deal Forge reduces the time, stress, and uncertainty involved in tech-deal 
 -  **AI Predictions** - ML-powered deal quality scoring
 -  **Multi-Source Aggregation** - SlickDeals & Best Buy
 
+## Streamlit Dashboard
+
+[!Streamlit Tech Deal Forge](images/Misc Images/tech-deal-forge-dashboard.png)
+
 ## 🚀 Live Demo
 Visit the live dashboard: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
 
