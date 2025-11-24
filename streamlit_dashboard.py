@@ -520,7 +520,7 @@ if not focus_df.empty:
     focus_df = focus_df.head(max_focus)
     title_to_link = {row.title: row.link for row in focus_df.itertuples()}
     focus_choice = st.selectbox(
-        "🎯 Focus on a specific deal (optional)",
+        "🎯 Focus on a specific deal (search by the keyword herergba(0,0,0,0.05))",
         options=["(None)"] + list(title_to_link.keys()),
         index=0,
         help="Select a deal to tailor price history and context."
@@ -601,7 +601,7 @@ with tab1:
                     hide_index=True,
                 )
                 deal_link = matching_deals[matching_deals['title'] == selected_deal_title]['link'].iloc[0]
-                st.markdown(f"🔗 [Open Deal]({deal_link})")
+                st.markdown(f"[Open Deal]({deal_link})")
             else:
                 st.info("📊 No deals in your filtered results have multiple price points yet. Run scrapers over multiple days to build history.")
                 selected_deal_title = None
@@ -633,7 +633,7 @@ with tab1:
                     line=dict(color='#FF4B4B', width=3),
                     marker=dict(size=10, symbol='circle'),
                     customdata=deal_timeline[['website']].values,
-                    hovertemplate='<b>Date:</b> %{x}<br><b>Price:</b> $%{y:.2f}<br><b>Source:</b> %{customdata[0]}<br><a href="' + deal_link + '" target="_blank" style="color: #1E90FF;">🔗 Open Deal</a><extra></extra>'
+                    hovertemplate='<b>Date:</b> %{x}<br><b>Price:</b> $%{y:.2f}<br><b>Source:</b> %{customdata[0]}<br><a href="' + deal_link + '" target="_blank" style="color: #1E90FF;">Open Deal</a><extra></extra>'
                 ))
 
                 # Add 7-day moving average (time-based rolling) for smoother context
@@ -698,30 +698,33 @@ with tab1:
                         borderwidth=2
                     )
                 
-                fig.update_layout(
-                    title=f"Price History: {selected_deal_title[:60]}...",
-                    xaxis_title="Date",
-                    yaxis_title="Price ($)",
-                    height=450,
-                    hovermode='closest',
-                    plot_bgcolor='rgba(0,0,0,0.05)',
-                    xaxis=dict(
-                        rangeselector=dict(
-                            buttons=[
-                                dict(count=7, label="7d", step="day", stepmode="backward"),
-                                dict(count=30, label="30d", step="day", stepmode="backward"),
-                                dict(step="all", label="All")
-                            ]
-                        ),
-                        rangeslider=dict(visible=True),
-                        type='date'
+
+                    fig.update_layout(
+                        title=f"Price History: {selected_deal_title[:60]}...",
+                        xaxis_title="Date",
+                        yaxis_title="Price ($)",
+                        height=450,
+                        hovermode='closest',
+                        plot_bgcolor='rgba(0,0,0,0.05)',  # Changed from rgba(0,0,0,0.05)
+                        paper_bgcolor='black',
+                        xaxis=dict(
+                            rangeselector=dict(
+                                buttons=[
+                                    dict(count=7, label="7d", step="day", stepmode="backward"),
+                                    dict(count=30, label="30d", step="day", stepmode="backward"),
+                                    dict(step="all", label="All")
+                                ]
+                            ),
+                            rangeslider=dict(visible=True),
+                            type='date'
+                        )
                     )
-                )
+                
                 
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})
                 
                 # Add prominent direct link
-                st.markdown(f"### [🔗 Open This Deal in New Tab]({deal_link})")
+                st.markdown(f"### [Open This Deal in New Tab]({deal_link})")
                 st.caption("⬆️ Click the link above to open this deal directly")
                 
                 # Show price statistics
@@ -845,7 +848,7 @@ with tab2:
                 line=dict(width=1, color='white')
             ),
             customdata=cat_deals[['title', 'link', 'website']].values,
-            hovertemplate='<b>%{customdata[0]}</b><br>Price: $%{y:.2f}<br>Source: %{customdata[2]}<br>Date: %{x}<br><a href="%{customdata[1]}" target="_blank" style="color: #1E90FF;">🔗 Open Deal</a><extra></extra>'
+            hovertemplate='<b>%{customdata[0]}</b><br>Price: $%{y:.2f}<br>Source: %{customdata[2]}<br>Date: %{x}<br><a href="%{customdata[1]}" target="_blank" style="color: #1E90FF;">Open Deal</a><extra></extra>'
         ))
         
         # Add average line
@@ -899,7 +902,7 @@ with tab2:
         # Show best deals (below average) with clickable links
         if not below_avg.empty:
             st.subheader("🏆 Best Deals (Below Average)")
-            st.caption("Click any 🔗 Open link to view the deal")
+            st.caption("Click any Open link to view the deal")
             best_deals = below_avg.nsmallest(5, 'price_numeric')[['title', 'price_numeric', 'website', 'scraped_at', 'link']].copy()
             best_deals['scraped_at'] = best_deals['scraped_at'].dt.strftime('%Y-%m-%d')
             
@@ -914,14 +917,19 @@ with tab2:
                     st.write(row['website'])
                 with col4:
                     if pd.notna(row['link']):
-                        st.markdown(f"### [🔗 Open]({row['link']})")
+                        st.markdown(f"### [Open]({row['link']})")
     else:
         st.info("Not enough data for category comparison. Need at least 3 deals per category.")
 
 # Move function OUTSIDE tab to prevent re-rendering spinner
 @st.cache_data(ttl=600)  # Cache for 10 minutes
 def get_price_drops_from_links(links: tuple):
-    """Efficiently compute price drops comparing first-seen vs latest price per link."""
+    """
+    Compute price drops using robust baseline calculation:
+    1. Use MAX(original_price) from scrapers when available
+    2. Fallback to highest historical price (removes outliers)
+    3. Filter out implausible drops (>75%) and data quality issues
+    """
     if not links:
         return pd.DataFrame()
     
@@ -936,35 +944,56 @@ def get_price_drops_from_links(links: tuple):
             JOIN (
                 SELECT link, MAX(scraped_at) AS last_seen
                 FROM deals
-                WHERE price_numeric IS NOT NULL AND link IN ({placeholders})
+                WHERE price_numeric IS NOT NULL AND price_numeric > 5 AND link IN ({placeholders})
                 GROUP BY link
             ) m ON d.link = m.link AND d.scraped_at = m.last_seen
-            WHERE d.price_numeric IS NOT NULL
+            WHERE d.price_numeric IS NOT NULL AND d.price_numeric > 5
         ),
-        first AS (
-            SELECT d.link, d.price_numeric AS original_price
-            FROM deals d
-            JOIN (
-                SELECT link, MIN(scraped_at) AS first_seen
-                FROM deals
-                WHERE price_numeric IS NOT NULL AND link IN ({placeholders})
-                GROUP BY link
-            ) f ON d.link = f.link AND d.scraped_at = f.first_seen
-            WHERE d.price_numeric IS NOT NULL
+        price_stats AS (
+            SELECT 
+                link,
+                MAX(original_price) AS max_original_price,
+                MAX(price_numeric) AS max_price,
+                AVG(price_numeric) AS avg_price,
+                MIN(price_numeric) AS min_price,
+                COUNT(*) AS scrape_count
+            FROM deals
+            WHERE price_numeric IS NOT NULL AND price_numeric > 5 AND link IN ({placeholders})
+            GROUP BY link
+        ),
+        baseline AS (
+            SELECT 
+                link,
+                -- Use scraper's original_price if available, else use max observed price minus outliers
+                CASE 
+                    WHEN max_original_price IS NOT NULL AND max_original_price > 0 THEN max_original_price
+                    -- If max_price is suspiciously higher than avg (>2x), it's likely an outlier - use avg*1.3 instead
+                    WHEN max_price > avg_price * 2 THEN avg_price * 1.3
+                    ELSE max_price
+                END AS original_price,
+                avg_price,
+                min_price,
+                scrape_count
+            FROM price_stats
+            WHERE scrape_count >= 2  -- Require at least 2 scrapes to track drops
         )
         SELECT 
             l.title,
             l.link,
             l.current_price,
-            f.original_price,
+            b.original_price,
             l.category,
             l.website,
-            (f.original_price - l.current_price) AS price_drop,
-            CASE WHEN f.original_price > 0 THEN ((f.original_price - l.current_price) * 100.0 / f.original_price) ELSE 0 END AS drop_percent,
+            (b.original_price - l.current_price) AS price_drop,
+            CASE WHEN b.original_price > 0 THEN ((b.original_price - l.current_price) * 100.0 / b.original_price) ELSE 0 END AS drop_percent,
             l.last_seen
         FROM latest l
-        JOIN first f ON l.link = f.link
-        WHERE (f.original_price - l.current_price) > 0
+        JOIN baseline b ON l.link = b.link
+        WHERE 
+            b.original_price > l.current_price  -- Price dropped
+            AND b.original_price < l.current_price * 4  -- Original not 4x+ current (data error)
+            AND l.current_price >= b.min_price * 0.8  -- Current within 20% of historical min
+            AND ((b.original_price - l.current_price) * 100.0 / b.original_price) <= 75  -- Max 75% drop
         ORDER BY drop_percent DESC
         LIMIT 20
     """
@@ -974,11 +1003,11 @@ def get_price_drops_from_links(links: tuple):
     return drops
 
 
-# NOTE: Complete integration of my ML Model and Script (Optimized v2.0)
-# ML FEATURE PREPARATION (22 features to match optimized model)
+# NOTE: Complete integration of my ML Model and Script 
+# ML FEATURE PREPARATION (22 features to match new Model that I created)
 def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Prepare 22 features matching the optimized v2.0 ML model.
+    Prepare 22 features
     
     Improvements:
     - Log-scaled times_seen (reduces dominance)
@@ -1081,7 +1110,7 @@ def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
     else:
         df2['hot_category_deal'] = 0
 
-    # Feature list (22 features matching optimized v2.0 training script)
+    # Feature list (22 features)
     feature_cols = [
         # Price features (6)
         'price_numeric', 'discount_percent', 'has_discount', 'discount_tier', 'price_bucket', 'price_percentile',
@@ -1171,7 +1200,7 @@ with tab3:
             text=drops['drop_percent'].apply(lambda x: f"{x:.1f}%"),
             textposition='outside',
             customdata=drops[['link', 'title', 'website', 'current_price', 'original_price']].values,
-            hovertemplate='<b>%{customdata[1]}</b><br>Discount: %{x:.1f}%<br>Current: $%{customdata[3]:.2f}<br>Was: $%{customdata[4]:.2f}<br>Source: %{customdata[2]}<br><a href="%{customdata[0]}" target="_blank" style="color: #1E90FF;">🔗 Open Deal</a><extra></extra>'
+            hovertemplate='<b>%{customdata[1]}</b><br>Discount: %{x:.1f}%<br>Current: $%{customdata[3]:.2f}<br>Was: $%{customdata[4]:.2f}<br>Source: %{customdata[2]}<br><a href="%{customdata[0]}" target="_blank" style="color: #1E90FF;">Open Deal</a><extra></extra>'
         ))
 
         fig.update_layout(
@@ -1180,16 +1209,17 @@ with tab3:
             yaxis_title="",
             height=600,
             showlegend=False,
-            hovermode='closest',
-            plot_bgcolor='rgba(0,0,0,0.05)'
+            hovermode='y',  # Changed from 'closest' to 'y' - hover stays on entire row
+            hoverdistance=100,  # Larger hover detection area
+            plot_bgcolor='rgba(0,0,0,0.05)',
         )
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})
-        st.caption("💡 **Tip**: Scroll down to the table below and click the 🔗 Open links to view deals")
+        st.caption("💡 **Tip**: Scroll down to the table below and click the Open links to view deals")
         
         # Show detailed price drop table with easy-click links
         st.subheader("📋 Price Drop Details")
-        st.caption("⬇️ Click any **🔗 Open** link in the rightmost column to view that deal")
+        st.caption("⬇️ Click any **Open** link in the rightmost column to view that deal")
         
         for idx, row in drops.head(10).iterrows():
             with st.container():
@@ -1220,7 +1250,7 @@ with tab3:
                 
                 with col4:
                     if pd.notna(row.get('link')):
-                        st.markdown(f"### [🔗 Open]({row['link']})")
+                        st.markdown(f"### [Open]({row['link']})")
                     else:
                         st.write("—")
                 
@@ -1293,11 +1323,8 @@ with tab4:
             pass
 
 with tab5:
-    st.title("🤖 AI-Powered Deal Predictions (Optimized v2.0)")
-    st.caption("Use optimized ML model to predict deal quality (22 features, improved accuracy)")
-    
-    # Model info
-    st.info("🔍 **Model:** Optimized v2.0 - Reduced overfitting • Balanced scoring • Log-scaled features")
+    st.title("🤖 AI-Powered Deal Predictions")
+    st.caption("Use optimized ML model to predict deal quality (22 features)")
     
     # Model file input
     model_file = st.text_input(
@@ -1307,7 +1334,7 @@ with tab5:
     )
     
     st.write(f"**Looking for:** `{model_file}`")
-    st.caption("💡 **Tip:** Model should be named `deal_predictor_optimized_YYYYMMDD_HHMMSS.joblib`")
+    st.caption("**Tip:** Model should be named `deal_predictor_optimized_YYYYMMDD_HHMMSS.joblib`")
     
 
     # ML Prediction Logic
@@ -1316,15 +1343,15 @@ with tab5:
     import os
 
     if not os.path.exists(model_file):
-        st.error(f"❌ Model file not found: `{model_file}`")
+        st.error(f"Model file not found: `{model_file}`")
         st.info("📋 Make sure the .joblib file is in your project root folder")
         st.code(f"Expected path: {os.path.abspath(model_file)}")
         st.stop()
 
-    st.success("✅ File exists!")
+    st.success("Joblib File uploaded!")
     with st.spinner("Loading model..."):
         model = joblib.load(model_file)
-    st.success(f"✅ Model loaded: {type(model).__name__}")
+    st.success(f"Model loaded: {type(model).__name__}")
 
     # Predict for rows with valid prices from filtered_df
     valid_df = filtered_df[(filtered_df['price_numeric'].notna()) & (filtered_df['price_numeric'] > 0)].copy()

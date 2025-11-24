@@ -144,8 +144,8 @@ def parse_graphql_responses(html_content):
     products = []
     
     # NOTE: Pattern to match the GraphQL product data structure
-    # Look for Product objects with skuId, then find the closest name and customerPrice within 2000 chars
-    # Split into multiple passes to catch more products
+    # Look for Product objects with skuId, then find the closest name and price in a window around it
+    # Also extract regularPrice to calculate discounts
     
     # First, find all Product blocks with skuId
     sku_pattern = r'"__typename":"Product"[^{}]{0,200}?"skuId":"([^"]+)"'
@@ -171,15 +171,20 @@ def parse_graphql_responses(html_content):
         name_pattern = r'"name":\{"__typename":"ProductName","short":"([^"]+)"'
         name_match = re.search(name_pattern, search_window)
         
-        # Look for customer price within this window
+        # Look for customer price (current/sale price)
         price_pattern = r'"customerPrice":([0-9.]+)'
         price_match = re.search(price_pattern, search_window)
+        
+        # Look for regular price (original/non-sale price)
+        regular_price_pattern = r'"regularPrice":([0-9.]+)'
+        regular_price_match = re.search(regular_price_pattern, search_window)
         
         if not name_match or not price_match:
             continue
         
         title = name_match.group(1).replace('\u0026', '&')
         price_str = price_match.group(1)
+        regular_price_str = regular_price_match.group(1) if regular_price_match else None
         
         # Validate extracted data
         if not title or not price_str:
@@ -199,15 +204,36 @@ def parse_graphql_responses(html_content):
         if not price_str.replace('.', '', 1).isdigit():
             continue
         
+        current_price = float(price_str)
+        original_price = None
+        discount_percent = None
+        
+        # Calculate discount if regular price exists and is higher than current price
+        if regular_price_str and regular_price_str.replace('.', '', 1).isdigit():
+            regular_price_val = float(regular_price_str)
+            if regular_price_val > current_price:
+                original_price = regular_price_val
+                discount_percent = round(((original_price - current_price) / original_price) * 100, 1)
+                
+                # Sanity check: reject if discount > 95% (likely data error)
+                if discount_percent > 95:
+                    print(f"  Warning: Suspicious {discount_percent:.1f}% discount on '{title[:50]}...' - skipping")
+                    continue
+        
         products.append({
             'sku_id': sku_id,
             'title': title,
-            'price': float(price_str),
+            'price': current_price,
             'price_text': f"${price_str}",
-            'link': f"https://www.bestbuy.com/site/-/{sku_id}.p?skuId={sku_id}"
+            'link': f"https://www.bestbuy.com/site/-/{sku_id}.p?skuId={sku_id}",
+            'original_price': original_price,
+            'discount_percent': discount_percent
         })
     
     print(f"Extracted {len(products)} products from GraphQL data")
+    if products:
+        discounted_count = sum(1 for p in products if p.get('discount_percent'))
+        print(f"  └─ {discounted_count} products have discount data")
 
     return products
 
@@ -305,8 +331,8 @@ def scrape_bestbuy_deals_api(driver: Driver, url: str):
             'category': category,
             'website': 'bestbuy',
             'scraped_at': datetime.now().isoformat(),
-            'original_price': None,
-            'discount_percent': None,
+            'original_price': product.get('original_price'),
+            'discount_percent': product.get('discount_percent'),
             'rating': None,
             'reviews_count': None,
         })
