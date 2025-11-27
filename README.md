@@ -135,4 +135,6 @@ The Tech Deal Forge is a free to use service and platform, the ideal here would 
 - Feel free to contribute or suggest improvements, as this is aimed to become an open-source project for the community once proper testing and documentation is complete.
 
 ## 📝 License
-MIT License - See LICENSE file for details
+MIT License - See LICENSE file for details. 
+
+Excited to collaborate in the future!
