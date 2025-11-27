@@ -1,6 +1,6 @@
 # Tech Deal Forge - Webscraping Platform for Consumer Technology Deal Tracking
 🔥 **Real-time tech deals aggregator and price tracker**
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://senior-project---tech-deal-forge.streamlit.app/)
 
 ## Overview of the Project 
 
@@ -35,7 +35,7 @@ Tech Deal Forge reduces the time, stress, and uncertainty involved in tech-deal 
 ![Tech Deal Forge Dashboard](images/Misc%20Images/tech-deal-forge-dashboard.png)
 
 ## 🚀 Live Demo
-Visit the live dashboard: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://tech-deal-forge-dashboard.streamlit.app/)]
+Visit the live dashboard: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://senior-project---tech-deal-forge.streamlit.app/)]
 
 ## Local Installation
 
@@ -135,4 +135,6 @@ The Tech Deal Forge is a free to use service and platform, the ideal here would 
 - Feel free to contribute or suggest improvements, as this is aimed to become an open-source project for the community once proper testing and documentation is complete.
 
 ## 📝 License
-MIT License - See LICENSE file for details
+MIT License - See LICENSE file for details. 
+
+Excited to collaborate in the future!
