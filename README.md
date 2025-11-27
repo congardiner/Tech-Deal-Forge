@@ -125,14 +125,16 @@ Scrapers run at scheduled intervals, so:
 - Feedback is always encouraged and accepted, if you have any encountered issues, please feel free to open a request and statement in 'Code Issues' as provided by Github, in addition to this, if there is a requested feature or area that could be improved for enhancing the user experience send it my way!
 
 ### **Features to Add**:
-- There is no user authentication or personalization features at this time, this a feature that is planned for future development, and will be added in later versions.
-- Cloud-Database Migration will take place on a future point in time as the service scales, as this will be necessary in order to keep the continuity of project alive and well.
-- Image(s) of specified items and products has been heavily requested, storage requirements currently restrict this addition, however, this is currently being researched for viable options. 
+- There is no user authentication or personalization features at this time, which would be ideal to curate deals on a per user basis. This is a feature that is planned for future development, and will be added in later versions.
+- Cloud-Database Migration will take place on a future point in time as the service scales, as this will be necessary in order to keep the continuity of project alive and well; enabling a robust system of interchanges on an automated, zero downtime basis. 
+- Image(s) of specified items and products has been heavily requested from the webscraped pipeline, storage requirements currently restrict this addition, however, this is currently being researched for viable options.
+- Enhanced charting methods alongside with a model adaptation to accomondate for price drops and predictions in this respect is underway, underfitting and data leakage is currently an active restriction as there is not enough training data to make a proper assessment at this time of writing. 
 
 ## **Disclaimer** 
 
 The Tech Deal Forge is a free to use service and platform, the ideal here would be to create a open-source project that comprehensively can be maintained and built by community developers; to reiterate, this application does not promote, exchange, or receive any funding, backing, or servicing from vendors, suppliers, or sponsors of any sort.
-- Feel free to contribute or suggest improvements, as this is aimed to become an open-source project for the community once proper testing and documentation is complete.
+- Feel free to contribute or suggest improvements, as this is aimed to become an open-source project for the community once proper testing and documentation is properly consolidated.
+- Thank you for all of the suggestions and user feedback at this time, it is very appreciated!
 
 ## 📝 License
 MIT License - See LICENSE file for details. 
