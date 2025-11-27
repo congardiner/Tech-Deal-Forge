@@ -43,6 +43,9 @@ logs/
 *.log
 scraper_log.txt
 
+# TEST-FILES
+TEST-FILES/
+
 # Backups
 backups/
 
