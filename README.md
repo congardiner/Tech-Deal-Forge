@@ -82,6 +82,21 @@ The dashboard displays cached data that is refreshed every 60 seconds. To manual
 1. Run scrapers: `python run_all_scrapers.bat`
 2. Or use the "🔄 Refresh Data" button in the sidebar
 
+
+## Machine Learning Model
+
+A lightweight regression model predicts potential price drops based on historical trends. It uses features like:
+
+- Current price
+- Historical average price
+- Time since last price drop
+- Category-specific trends
+- Discount percentage
+
+This is a RandomForestRegressor model trained on historical price data to provide an analytical score indicating deal quality, helping users decide whether to buy now or wait, based on predicted future prices. 
+
+[![ML Model Performance](images/Misc%20Images/ml-model-performance.png)]
+
 ## Limitations of my Project & Disclaimers
 
 1. **Limited Data Sources**

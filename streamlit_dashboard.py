@@ -1338,7 +1338,7 @@ with tab5:
     # Model file input
     model_file = st.text_input(
         "📁 Model filename (in project root):",
-        value="deal_predictor_optimized_20251121_234702.joblib",
+        value="deal_predictor_optimized_20251202_171012.joblib",
         key="ml_model_file"
     )
     
