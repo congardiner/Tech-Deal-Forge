@@ -1,5 +1,5 @@
 # Tech Deal Forge - Webscraping Platform for Consumer Technology Deal Tracking
-🔥 **Real-time tech deals aggregator and price tracker**
+**Real-time tech deals aggregator and price tracker**
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://senior-project---tech-deal-forge.streamlit.app/)
 
 ## Overview of the Project 
@@ -33,10 +33,6 @@ Tech Deal Forge reduces the time, stress, and uncertainty involved in tech-deal 
 ## Streamlit Dashboard
 
 ![Tech Deal Forge Dashboard](images/Misc%20Images/tech-deal-forge-dashboard.png)
-
-
-## 🚀 Live Demo
-Visit the live dashboard: [Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://senior-project---tech-deal-forge.streamlit.app/)
 
 ## Local Installation
 
@@ -77,12 +73,6 @@ Senior-Project-Tech-Deal-Forge/
 │   └── deals.db                # SQLite database
 └── requirements.txt            # Python dependencies
 ```
-
-## 🔄 Updating Data
-The dashboard displays cached data that is refreshed every 60 seconds. To manually update:
-1. Run scrapers: `python run_all_scrapers.bat`
-2. Or use the "🔄 Refresh Data" button in the sidebar
-
 
 ## Machine Learning Model
 
