@@ -10,8 +10,10 @@ Usage:
 
 Output:
     output/ml_training_data file that is used for training ML Models. 
-    
-This CSV will have ALL required columns for your Colab training script.
+
+
+NOTE: Ensure that you have run the scrapers to populate the database before executing this script.
+- You could aggregate or add more data later, however, I kept it strictly tied to my webscrapers to demonstrate core functionality of those assets for my projects and the raw power of web scraping in the works.
 """
 
 import sqlite3
@@ -23,14 +25,14 @@ def export_deals_for_ml(db_path='output/deals.db', output_dir='output'):
     """
     Export all deals from database into ML training-ready CSV
     """
-    print("=" * 60)
+
     print("🔨TECH DEAL FORGE - DATABASE EXPORT FOR ML")
     print("=" * 60)
     
     # Check if database exists
     db_file = Path(db_path)
     if not db_file.exists():
-        print(f"\nERROR: Database not found at {db_path}")
+        print(f"\nDatabase not found at {db_path}")
         return None
     
     print(f"\nDatabase: {db_path}")
@@ -46,13 +48,12 @@ def export_deals_for_ml(db_path='output/deals.db', output_dir='output'):
     print(f"   Total deals: {total_deals:,}")
     
     if total_deals == 0:
-        print(f"\nWARNING: Database is empty!")
-        print(f"Run scrapers to collect deals first.")
+        print(f"\nDatabase is empty!")
         conn.close()
         return None
     
     # Export all deals with required columns
-    print(f"\n📊 Exporting deals from database...")
+    print(f"\nExporting deals from database...")
     
     query = """
     SELECT 
@@ -124,20 +125,16 @@ def export_deals_for_ml(db_path='output/deals.db', output_dir='output'):
     print(f"Columns: {len(df.columns)}")
     
     # Show column list
-    print(f"\n📋 Exported Columns:")
+    print(f"\nExported Columns:")
     for i, col in enumerate(df.columns, 1):
         print(f"   {i:2d}. {col}")
     
 
     print(f"Select: {output_file.name}")
-    print(f"\nExport successful! Ready for ML training.")
+    print(f"\nML Training in Google Colab can now commence.")
+    print()
     
     return output_file
 
 if __name__ == "__main__":
-    try:
-        export_deals_for_ml()
-    except Exception as e:
-        print(f"\nERROR: {e}")
-        import traceback
-        traceback.print_exc()
+    export_deals_for_ml()

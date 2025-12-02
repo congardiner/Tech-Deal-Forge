@@ -6,12 +6,19 @@ from pathlib import Path
 from typing import List, Dict, Optional
 import logging
 
+
+# NOTE: REGEX was used extensively as this was a huge part of the data cleaning and validation process.
+# NOTE: I've created a ton of different edge cases to ensure that the data is clean and standardized for production use, especially with price extraction and validation, as this was a repeat issue that I kept running into.
+# NOTE: In addition to this, I've tried my best to ensure that all rows are properly timestamped for historical tracking, which is a key requirement for this project, as I wanted to build and track price trends over time...
+# NOTE: 
+
+
+
 class DealsDataPipeline:
     """
-    Production-ready data pipeline for processing scraped deals data.
-    Stores data in SQLite with support for historical tracking and filtering.
+    Stores data in SQLite with support for historical tracking and filtering, which I've used extensively in my data analysis and reporting, however, this is not a fool-proof system, as I've had constant revisions. Just something to keep in mind. 
     """
-    
+
     def __init__(self, output_dir: str = "output"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
@@ -131,13 +138,13 @@ class DealsDataPipeline:
             # Format: 1,299 (no decimal)
             price_clean = price_clean.replace(',', '')
         
-        # Validate the cleaned price is a valid number
+        # NOTE: REGEX CONTINUES: Validate the cleaned price is a valid number
         if not price_clean.replace('.', '', 1).isdigit():
             return None
         
         price_value = float(price_clean)
         
-        # Sanity check: reject unrealistic prices
+        # NOTE: Sanity check: reject unrealistic prices
         if price_value <= 0 or price_value > 1000000:
             return None
         
@@ -160,25 +167,25 @@ class DealsDataPipeline:
                 (filtered_df['price_numeric'].isna())
             ]
         
-        # Category filter
+        # NOTE: Category filter (no issues to report at this time of writing)
         if 'categories' in filters and filters['categories']:
             if isinstance(filters['categories'], str):
                 filters['categories'] = [filters['categories']]
             filtered_df = filtered_df[filtered_df['category'].isin(filters['categories'])]
         
-        # Keyword filter in title
+        # NOTE: Keyword filter in title
         if 'keywords' in filters and filters['keywords']:
             keywords = filters['keywords']
             if isinstance(keywords, str):
                 keywords = [keywords]
             
-            # Create regex pattern for any keyword
+            # NOTE: Creates the same triangulated regex pattern for any keyword, making sure to escape special characters, although my edge cases should be minimal here.
             pattern = '|'.join([re.escape(keyword) for keyword in keywords])
             filtered_df = filtered_df[
                 filtered_df['title'].str.contains(pattern, case=False, na=False)
             ]
         
-        # Exclude keywords
+        # NOTE: Exclude keywords as specified have been excluded. 
         if 'exclude_keywords' in filters and filters['exclude_keywords']:
             exclude_keywords = filters['exclude_keywords']
             if isinstance(exclude_keywords, str):
@@ -244,7 +251,7 @@ class DealsDataPipeline:
         
         conn.commit()
         
-        # Log total database size *after* insertions
+        # NOTE: Logs total database size *after* insertions have already taken place
         cursor.execute("SELECT COUNT(*) FROM deals")
         total_rows = cursor.fetchone()[0]
         
@@ -254,9 +261,6 @@ class DealsDataPipeline:
         return rows_added
             
 
-
-
-    
     def get_deals_from_db(self, **filters) -> pd.DataFrame:
         """Retrieve deals from SQLite database with optional filters"""
         conn = sqlite3.connect(self.db_path)
@@ -300,7 +304,7 @@ class DealsDataPipeline:
         Returns:
             Dictionary with export results and summary statistics
         """
-        # Clean the data
+
         df = self.clean_data(deals_data)
         
         if df.empty:
@@ -311,14 +315,14 @@ class DealsDataPipeline:
                 'summary': {'total_deals': 0}
             }
         
-        # Apply filters if provided
+        # NOTE: Apply filters if provided
         if filters:
             df = self.filter_deals(df, **filters)
         
-        # Export to all formats
+        # NOTE: Export to all formats, which as of right now is just csv and to my mysql-lite database.
         results = {}
         
-        # CSV export with optional prefix
+        # NOTE: CSV export with optional prefix
         csv_filename = None
         if csv_prefix:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -326,11 +330,11 @@ class DealsDataPipeline:
         csv_path = self.to_csv(df, filename=csv_filename)
         results['csv'] = csv_path
         
-        # Database export
+        # NOTE: Database export
         rows_added = self.to_database(df)
         results['database_rows_added'] = rows_added
         
-        # Summary statistics
+        # NOTE: Summary statistics
         results['summary'] = {
             'total_deals': len(df),
             'deals_with_prices': int(df['price_numeric'].notna().sum()),
@@ -346,6 +350,6 @@ class DealsDataPipeline:
         return results
 
 if __name__ == "__main__":
-    # Production test
+    # NOTE: Production test of the data pipeline
     pipeline = DealsDataPipeline()
     print("Data pipeline compiled successfully")

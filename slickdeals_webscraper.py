@@ -7,8 +7,9 @@ import argparse
 import re
 from datetime import datetime
 
-
-# Slickdeals categories to crawl (frontpage + specific categories of interest that I've isolated)
+# NOTE: Botassaurus is a lightweight web scraping framework I've developed to streamline browser automation and HTML parsing tasks, regex was extremely useful here for parsing price details.
+# NOTE: At the time of writing, the data_pipeline module was added as a double redundant feature to ensure that all fetched data was cleansed, though it does take or add some dev time to compiling. Just something to make note of.
+# NOTE: Slickdeals categories to crawl (frontpage + specific categories of interest that I've isolated)
 
 CATEGORY_URLS = [
     "https://slickdeals.net/computer-deals/",
@@ -325,7 +326,7 @@ def main():
     if args.no_scrape:
         # If skipping scraping, try to proceed without loading a JSON cache.
         # We'll just exit early since there's no fresh data to process.
-        print("--no-scrape specified and no cached CSV loader implemented. Exiting.")
+        print("no-scrape specified and no cached CSV loader implemented. Exiting.")
         return
     else:
         deals = scrape_tech_deals_with_pipeline()
@@ -334,9 +335,6 @@ def main():
         print("No deals found")
         return
     
-
-
-
 
     filter_args = {}
     if args.min_price is not None:
