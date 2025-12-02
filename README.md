@@ -95,7 +95,7 @@ A lightweight regression model predicts potential price drops based on historica
 
 This is a RandomForestRegressor model trained on historical price data to provide an analytical score indicating deal quality, helping users decide whether to buy now or wait, based on predicted future prices. 
 
-[![ML Model Performance](images/Misc%20Images/predictions_ml_rf_deal_forge_12-02-2025.png)]
+[![RFR ML Model Performance](images/Misc%20Images/predictions_ml_rf_deal_forge_12-02-2025.png)]
 
 ## Limitations of my Project & Disclaimers
 
