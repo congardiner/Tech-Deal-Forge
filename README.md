@@ -32,7 +32,8 @@ Tech Deal Forge reduces the time, stress, and uncertainty involved in tech-deal 
 
 ## Streamlit Dashboard
 
-[Tech Deal Forge Dashboard](images/Misc%20Images/tech-deal-forge-dashboard.png)
+![Tech Deal Forge Dashboard](images/Misc%20Images/tech-deal-forge-dashboard.png)
+
 
 ## 🚀 Live Demo
 Visit the live dashboard: [Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://senior-project---tech-deal-forge.streamlit.app/)
@@ -95,7 +96,7 @@ A lightweight regression model predicts potential price drops based on historica
 
 This is a RandomForestRegressor model trained on historical price data to provide an analytical score indicating deal quality, helping users decide whether to buy now or wait, based on predicted future prices. 
 
-[RFR ML Model Performance](images/Misc%20Images/predictions_ml_rf_deal_forge_12-02-2025.png)
+![RFR ML Model Performance](images/Misc%20Images/predictions_ml_rf_deal_forge_12-02-2025.png)
 
 ## Limitations of my Project & Disclaimers
 
