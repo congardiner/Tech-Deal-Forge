@@ -21,12 +21,12 @@ import numpy as np
 import joblib
 
 
-# NOTE: Issue resolved with path not being resolved. (Local Instance)
+# NOTE: Issue resolved with path not being resolved. (Local Instance used for development and testing prior to deployment on cloud hosting services)
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "output" / "deals.db"
 
-
+# NOTE: streamlit page configuration, complete with icon, title, and a few layout settings, loads of testing to ensure that the mobile and desktop versions both scale properly.
 st.set_page_config(
     page_title="Deal Forge",           
     page_icon="🔨",                     
@@ -36,7 +36,8 @@ st.set_page_config(
 
 
 # NOTE: UPDATED STYLING METRICS to be more visually appealing (colors, buttons, tabs, etc.)
-
+# NOTE: Used a number of custom CSS styles to enhance the visual appeal of the dashboard.
+# NOTE: In addition to this, I've tried to ensure that my project theme is consistent throughout the entire application; this was apart of the buttons/widgets design theme.
 st.markdown("""
 <style>
     /* Global theme adjustments */
@@ -156,19 +157,20 @@ def normalize_category(raw) -> str:
     if raw is None or (isinstance(raw, float) and pd.isna(raw)):
         return "Other"
 
-    # NOTE: regex for the win!
+    # NOTE: I have spent an enormous amount of time restructuring and rebuilding this section, but regex was so incredibly fundamental to ensuring that my categories and everything else would work when being filtered. Regex for the win!
 
     s = str(raw)
     s = urllib.parse.unquote(s)
-    # Drop query/fragment of a query from the search state
+    # NOTE: Drop query/fragment of a query from the search state
     s = s.split('?', 1)[0].split('#', 1)[0]
-    # Normalize separators
+    # NOTE: Normalize separators
     s = re.sub(r"[\/_>|-]+", " ", s).strip().lower()
-    # Remove leading 'deal'/'deals' even if glued or stitched together otherwise.
+    # NOTE: Remove leading 'deal'/'deals' even if glued or stitched together otherwise.
     s = re.sub(r"^(deals?|deal)(?=[a-z])", "", s)
-    # Drop everything after the word 'filters' if present
+    # NOTE: Drop everything after the word 'filters' if present
     s = re.sub(r"\bfilters.*$", "", s)
-    # Tokenize and remove stopwords/noise
+
+    # NOTE: Tokenize and remove stopwords/noise
     tokens = re.findall(r"[a-z]+", s)
     stop = {
         "deal", "deals", "filter", "filters", "rating", "frontpage", "popular",
@@ -180,26 +182,27 @@ def normalize_category(raw) -> str:
         return "Other"
     phrase = " ".join(tokens)
 
-    # Canonical forms for common variations
+    # NOTE: Canonical forms for common variations as a dictionary lookup, as too often this would be inconsistent while webscraping, it doesn't accomondate for everything, but it is for sure a best effort at best. 
+    # NOTE: Resolved majority of issues with my scrapers and data inconsistencies.
     canon = {
-        # Displays
+        # NOTE: Displays & Outputs (graphic cards, tvs, and some monitors)
         "tv": "TVs", "tvs": "TVs", "tv deals": "TVs",
         "video card": "Video Cards", "video cards": "Video Cards", "graphics card": "Graphics Cards",
-        # Phones
+        # Phones and consumer wearables
         "cell phone": "Cell Phones", "cell phones": "Cell Phones",
         "unlocked phone": "Unlocked Phones", "unlocked phones": "Unlocked Phones",
         "smartwatch": "Smartwatches", "smart watch": "Smartwatches", "smart watches": "Smartwatches",
-        # Computers
+        # Computers in all its broadness.
         "laptop": "Laptops", "laptops": "Laptops", "laptop deals": "Laptops",
         "desktop": "Desktops", "desktops": "Desktops", "desktop computers": "Desktops",
         "computer parts": "Computer Parts", "computers parts": "Computer Parts",
-        # Components
+        # Components for PC(s)
         "cpu": "CPUs", "cpus": "CPUs", "gpu": "GPUs", "gpus": "GPUs",
         "motherboard": "Motherboards", "motherboards": "Motherboards",
         "memory": "Memory", "ram": "Memory",
-        # Audio
+        # Audio Equipment
         "headphone": "Headphones", "headphones": "Headphones", "wireless headphones": "Wireless Headphones",
-        # General
+        # General Consumer Technology Items that have been webscraped.
         "tablet": "Tablets", "tablets": "Tablets", "software": "Software",
         "gaming": "Gaming", "electronics": "Electronics", "tech": "Tech", "tech deals": "Tech",
         "drives": "Drives", "education": "Education", "servers": "Servers",
@@ -239,12 +242,12 @@ if 'date_range' not in st.session_state:
 if 'row_limit' not in st.session_state:
     st.session_state.row_limit = 10000
 
-# Expander state (keeps filter section open when user is actively filtering)
+# NOTE: Expander state (keeps filter section open when user is actively filtering)
 if 'filter_expander_open' not in st.session_state:
     st.session_state.filter_expander_open = False
 
 
-# HEADER SECTION --- 
+# HEADER SECTION of my Project--- 
 # NOTE: all issues have now been resolved with context cues, scaling and proper implementation of columns for the layout. Other textual requirements and other reported bugs were also addressed in my iterations. 
 
 logo_col, title_col = st.columns([1, 5])
@@ -270,8 +273,8 @@ with title_col:
 st.markdown("---")
 
 
-# NOTE: something that I learned, st.cache_data is the way to go for making streamlit super fast to use!
-# @st.cache_data decorator prevents reloading data on every interaction
+# NOTE: Something that I learned, st.cache_data is the way to go for making streamlit super fast to use! Otherwise, especially with the expanding size of my database it would otherwise be too slow to utilize otherwise.
+# NOTE: @st.cache_data decorator prevents reloading data on every interaction
 
 
 @st.cache_data(ttl=300)
@@ -291,14 +294,15 @@ def load_deals_data(row_limit: int = 10000):
     
     if 'scraped_at' in df.columns:
         df['scraped_at'] = pd.to_datetime(df['scraped_at'])
-    # Create cleaned category column for consistent filtering/grouping
+    # NOTE: Creates a cleaned category column for consistent filtering/grouping (normalized) but keeps original for reference.
+
     if 'category' in df.columns:
         df['category_clean'] = df['category'].apply(normalize_category)
     
     return df
 
 # NOTE: This has ensured that my database has been populated, queries uploaded, and that there are no active issues to report outside of the baseline.
-# Load data into session state (only once or when refreshed)
+# NOTE: Loads data into session state (only once or when refreshed)
 if st.session_state.df_loaded is None:
     with st.spinner("Loading deals data..."):
         st.session_state.df_loaded = load_deals_data(st.session_state.row_limit)
@@ -313,7 +317,7 @@ if df.empty:
 
 
 # NOTE: This is my main layout and the initial gate keeping to my columnns and overall design philosophy.
-# MAIN METRICS ROW - Enhanced with visual cards
+# MAIN METRICS ROW - Enhanced with visual cards as I wanted this to be apart of the design of my project even with the limited options via streamlit.
 st.markdown("### At a Glance")
 col1, col2, col3, col4 = st.columns(4)
 
@@ -336,18 +340,19 @@ with col4:
     if 'scraped_at' in df.columns:
         latest = df['scraped_at'].max()
         hours_ago = (datetime.now() - latest).total_seconds() / 3600
-        st.metric("🕐 Last Update", latest.strftime("%m/%d %H:%M"), f"{hours_ago:.1f}h ago")
+        st.metric("Last Update", latest.strftime("%m/%d %H:%M"), f"{hours_ago:.1f}h ago")
 
 st.markdown("---")
 
-# NOTE: UNIFIED FILTER SECTION - Collapsible for cleaner UI
+# NOTE: UNIFIED FILTER SECTION - Collapsible for cleaner UI which was the entire goal here.
 with st.expander("🔍 **Search & Filter Deals**", expanded=st.session_state.filter_expander_open):
     st.caption("Filters apply to all tabs below. Adjust criteria to narrow your search.")
     
+    # NOTE: ROW 1: Search + Categories (kept it to just two columns for simplicity on the first row.)
     filter_col1, filter_col2 = st.columns(2)
     
     with filter_col1:
-        # Keyword search
+        # NOTE: Keyword search
         search_query = st.text_input(
             "🔎 Keyword Search",
             value=st.session_state.search_query,
@@ -361,7 +366,7 @@ with st.expander("🔍 **Search & Filter Deals**", expanded=st.session_state.fil
             st.session_state.filter_expander_open = True
 
     with filter_col2:
-        # Category multiselect
+        # NOTE: Category multiselect logic which is expanded using a list and a sorted approach for consistency.
         if 'category_clean' in df.columns:
             categories = sorted([c for c in df['category_clean'].dropna().unique().tolist() if c])
         else:
@@ -379,11 +384,11 @@ with st.expander("🔍 **Search & Filter Deals**", expanded=st.session_state.fil
             st.session_state.selected_categories = selected_categories
             st.session_state.filter_expander_open = True
     
-    # NOTE: Second row of filters
+    # NOTE: ROW 2: Price Range + Date Range + Data Scope (row limits are automatically applied to ensure that my streamlit app works well on the free tier version for cloud hosting.)
     filter_col3, filter_col4, filter_col5 = st.columns(3)
     
     with filter_col3:
-        # Price range
+        # NOTE: Price range filter logic
         if df['price_numeric'].notna().any():
             min_price_data = float(df['price_numeric'].min())
             max_price_data = float(df['price_numeric'].max())
@@ -412,14 +417,12 @@ with st.expander("🔍 **Search & Filter Deals**", expanded=st.session_state.fil
             price_range = (0, 0)
     
     with filter_col4:
-        # NOTE: Date range filter (with defaults now added!)
+        # NOTE: Date range filter for the column, with defaults to last 7 days if possible.
         if 'scraped_at' in df.columns and df['scraped_at'].notna().any():
             min_dt = pd.to_datetime(df['scraped_at']).min().date()
             max_dt = pd.to_datetime(df['scraped_at']).max().date()
-            # Calculate default start date, ensuring it's not before min_dt
             default_start = max_dt - pd.Timedelta(days=7)
             default_start = default_start.date() if hasattr(default_start, 'date') else default_start
-            # Ensure default_start is not before min_dt
             default_start = max(default_start, min_dt)
             
             date_range = st.date_input(
@@ -438,9 +441,9 @@ with st.expander("🔍 **Search & Filter Deals**", expanded=st.session_state.fil
             date_range = None
     
     with filter_col5:
-        # Data scope selector
+        # NOTE: Data scope selector
         row_limit_option = st.selectbox(
-            "📊 Data Scope",
+            "Data Scope (rows to load)",
             options=["10k rows", "20k rows", "All (slow)"],
             index=0,
             help="Limit rows for performance",
@@ -456,27 +459,89 @@ with st.expander("🔍 **Search & Filter Deals**", expanded=st.session_state.fil
                 st.session_state.row_limit = 20000
             else:
                 st.session_state.row_limit = 0
-            st.session_state.filter_expander_open = False  # Close after refresh
+            st.session_state.filter_expander_open = False
             st.rerun()
+    
+    # NOTE: ROW 3: Website Filter + Discount Threshold (NEW!)
+    filter_col6, filter_col7 = st.columns(2)
+    
+    with filter_col6:
+        # NOTE: Website multiselect logic that I created.
+        if 'website' in df.columns:
+            websites = sorted([w for w in df['website'].dropna().unique().tolist() if w])
+            
+            # Initialize session state for websites
+            if 'selected_websites' not in st.session_state:
+                st.session_state.selected_websites = []
+            
+            selected_websites = st.multiselect(
+                "🌐 Websites",
+                options=websites,
+                default=st.session_state.selected_websites,
+                help="Filter by retailer (e.g., Best Buy, Slickdeals)",
+                key="main_website_select",
+                on_change=lambda: setattr(st.session_state, 'filter_expander_open', True)
+            )
+            if selected_websites != st.session_state.selected_websites:
+                st.session_state.selected_websites = selected_websites
+                st.session_state.filter_expander_open = True
+        else:
+            selected_websites = []
+    
+    with filter_col7:
+        # NOTE: Minimum discount thresholdm and filters out the discount percent column if it exists.
+        if 'discount_percent' in df.columns and df['discount_percent'].notna().any():
+            # NOTE: Initializes session state for min discount
+            if 'min_discount' not in st.session_state:
+                st.session_state.min_discount = 0
+            
+            min_discount = st.slider(
+                "🔥 Min Discount (%)",
+                min_value=0,
+                max_value=100,
+                value=st.session_state.min_discount,
+                step=5,
+                help="Only show deals with at least X% off",
+                key="main_discount_slider",
+                on_change=lambda: setattr(st.session_state, 'filter_expander_open', True)
+            )
+            if min_discount != st.session_state.min_discount:
+                st.session_state.min_discount = min_discount
+                st.session_state.filter_expander_open = True
+        else:
+            min_discount = 0
 
 st.markdown("---")
 
 
 # NOTE: APPLIES all filters to create filtered_df (single source of truth) - to ensure that categories are consistent across all tabs
-# No other issues to report, consistent testing validates my edge cases.
+# NOTE: No other issues to report, consistent testing validates my edge cases.
+# NOTE: APPLIES all filters to create filtered_df (single source of truth)
 filtered_df = df.copy()
 
-# Apply keyword search
+# NOTE: Applies keyword search (which is case insensitive)
 if st.session_state.search_query:
     mask = filtered_df['title'].str.contains(st.session_state.search_query, case=False, na=False)
     filtered_df = filtered_df[mask]
 
-# Apply category filter
+# NOTE: Applies category filter (from the categories that I've aggregated together)
 if st.session_state.selected_categories:
     col_to_use = 'category_clean' if 'category_clean' in filtered_df.columns else 'category'
     filtered_df = filtered_df[filtered_df[col_to_use].isin(st.session_state.selected_categories)]
 
-# Apply price range
+# NOTE: Applies website filter
+if 'selected_websites' in st.session_state and st.session_state.selected_websites:
+    filtered_df = filtered_df[filtered_df['website'].isin(st.session_state.selected_websites)]
+
+# NOTE: Applies minimum discount filter
+if 'min_discount' in st.session_state and st.session_state.min_discount > 0:
+    if 'discount_percent' in filtered_df.columns:
+        filtered_df = filtered_df[
+            (filtered_df['discount_percent'] >= st.session_state.min_discount) |
+            (filtered_df['discount_percent'].isna())  # NOTE: Keep deals without discount data so everything is included.
+        ]
+
+# NOTE: Applies price range or a default full range if none specified.
 if price_range[0] > 0 or price_range[1] < max_price_data:
     price_mask = (
         ((filtered_df['price_numeric'] >= price_range[0]) & (filtered_df['price_numeric'] <= price_range[1])) |
@@ -484,7 +549,7 @@ if price_range[0] > 0 or price_range[1] < max_price_data:
     )
     filtered_df = filtered_df[price_mask]
 
-# Apply date range
+# NOTE: Applies a date range, if specified, otheriwise shows all dates.
 if date_range and isinstance(date_range, (list, tuple)) and len(date_range) == 2:
     start_date, end_date = date_range
     start_ts = pd.to_datetime(start_date)
@@ -492,10 +557,13 @@ if date_range and isinstance(date_range, (list, tuple)) and len(date_range) == 2
     if 'scraped_at' in filtered_df.columns:
         filtered_df = filtered_df[(filtered_df['scraped_at'] >= start_ts) & (filtered_df['scraped_at'] <= end_ts)]
 
-# Show filtered count
-st.info(f"📊 **{len(filtered_df)} deals** match your filters (from {len(df)} total)")
 
-# Quick navigation hints
+
+# NOTE: Shows filtered count from all of my applied filters, which has been tested so many times now, it should be super rock solid moving forward which is nice.
+st.info(f"**{len(filtered_df)} deals** match your filters (from {len(df)} total)")
+
+
+# NOTE: Quick navigation hints that I included, which should help enhance the core base user experience.
 if len(filtered_df) > 0:
     nav_col1, nav_col2, nav_col3, nav_col4 = st.columns(4)
     with nav_col1:
@@ -509,21 +577,21 @@ if len(filtered_df) > 0:
 
 st.markdown("---")
 
-# ===== TABS SECTION (now using filtered_df as single source) =====
+# ===== TABS SECTION (now using filtered_df as single source) as intended.
 st.header("📊 Analytics & Insights")
 
-# Optional focused deal selection (applies across tabs that support it)
+# NOTE: Optional focused deal selection for the users that I want this applied, I've included it as an option regardless though (applies across tabs that support it)
 if 'selected_deal_link' not in st.session_state:
     st.session_state.selected_deal_link = None
 
 focus_df = filtered_df[['title','link']].dropna().drop_duplicates()
 if not focus_df.empty:
-    # Limit options for performance
+    # Limit options for performance as this was a somewhat finicky space to work within when the dataset grows larger.
     max_focus = 500
     focus_df = focus_df.head(max_focus)
     title_to_link = {row.title: row.link for row in focus_df.itertuples()}
     focus_choice = st.selectbox(
-        "🎯 Focus on a specific deal (search by the keyword herergba(0,0,0,0.05))",
+        "TIP: Focus on a specific deal (search by the keyword here if you are interested in not using the filtered results)",
         options=["(None)"] + list(title_to_link.keys()),
         index=0,
         help="Select a deal to tailor price history and context."
@@ -554,6 +622,7 @@ def get_deals_with_history_from_links(links: tuple):
     if not links:
         return pd.DataFrame(columns=["link", "title", "entry_count"])
     
+    # NOTE: I've created tons of custom queries within streamlit, which is works, however, it is not optimized super well especially for my expanding dataset.
     conn = sqlite3.connect(str(DB_PATH))
     placeholders = ','.join(['?' for _ in links])
     query = f"""
@@ -574,7 +643,7 @@ with tab1:
     st.subheader("💰 Price History Tracker")
     st.caption("Shows deals from your current filters that have multiple price snapshots over time")
     
-    # Use focused deal if chosen; else discover deals with history
+    # NOTE: Uses focused deal if chosen; else discover deals with history
     if st.session_state.selected_deal_link:
         candidate_links = (st.session_state.selected_deal_link,)
     else:
@@ -590,7 +659,7 @@ with tab1:
         with content_container:
             if not matching_deals.empty:
                 st.success(f"Found {len(matching_deals)} deals with price history in your filtered results")
-                # Allow manual selection
+                # NOTE: this does allow for manual selection but I've defaulted to the first one for simplicity.
                 deal_titles_hist = matching_deals['title'].tolist()
                 selected_deal_title = st.selectbox(
                     "Select a deal for detailed price history",
@@ -625,7 +694,8 @@ with tab1:
                 
                 conn.close()
                 
-                # Create line chart showing price over time
+                # NOTE: Creates line chart showing price over time
+                # NOTE: this figure was created with the assistance of an LLM to ensure proper hover templates and overall design, as this was a key aspect that was cumbersome to manually optimize.
                 fig = go.Figure()
                 
                 fig.add_trace(go.Scatter(
@@ -639,7 +709,7 @@ with tab1:
                     hovertemplate='<b>Date:</b> %{x}<br><b>Price:</b> $%{y:.2f}<br><b>Source:</b> %{customdata[0]}<br><a href="' + deal_link + '" target="_blank" style="color: #1E90FF;">Open Deal</a><extra></extra>'
                 ))
 
-                # Add 7-day moving average (time-based rolling) for smoother context
+                # NOTE: Adds a 7-day moving average (time-based rolling) for smoother context - as apart of the price history visualization. - also created using an LLM to guide the structure of this code chunk for my plotting / visualization for streamlit. 
                 try:
                     dt_sorted = deal_timeline.sort_values('scraped_at').copy()
                     dt_sorted = dt_sorted.set_index('scraped_at')
@@ -681,7 +751,7 @@ with tab1:
                     font=dict(color='white')
                 )
                 
-                # Calculate price change
+                # NOTE: Calculates the price change
                 if len(deal_timeline) > 1:
                     price_change = deal_timeline['price_numeric'].iloc[-1] - deal_timeline['price_numeric'].iloc[0]
                     price_change_pct = (price_change / deal_timeline['price_numeric'].iloc[0]) * 100
@@ -707,7 +777,7 @@ with tab1:
                         yaxis_title="Price ($)",
                         height=450,
                         hovermode='closest',
-                        plot_bgcolor='rgba(0,0,0,0.05)',  # Changed from rgba(0,0,0,0.05)
+                        plot_bgcolor='rgba(0,0,0,0.05)', 
                         paper_bgcolor='black',
                         xaxis=dict(
                             rangeselector=dict(
@@ -725,11 +795,11 @@ with tab1:
                 
                 st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})
                 
-                # Add prominent direct link
+                # NOTE: All for the easily readable link to hotlink the address of the deal itself. 
                 st.markdown(f"### [Open This Deal in New Tab]({deal_link})")
                 st.caption("⬆️ Click the link above to open this deal directly")
                 
-                # Show price statistics
+                # NOTE: Shows price statistics amongst the 5 columns for easy reading.
                 col1, col2, col3, col4, col5 = st.columns(5)
                 
                 with col1:
@@ -754,7 +824,7 @@ with tab1:
                     avg_price = deal_timeline['price_numeric'].mean()
                     st.metric("Average Price", f"${avg_price:.2f}")
                 
-                # Show recent price history table
+                # NOTE: shows how recent price history table was updated, or the most specific deals that were related to this. 
                 st.subheader("📋 Recent Price Changes")
                 recent_data = deal_timeline[['scraped_at', 'price_text', 'price_numeric', 'website']].tail(10).sort_values('scraped_at', ascending=False)
                 recent_data['scraped_at'] = recent_data['scraped_at'].dt.strftime('%Y-%m-%d %H:%M')
@@ -764,7 +834,7 @@ with tab2:
     st.subheader("📈 Deal vs Category Average")
     st.caption("Compare individual deal prices to their category average (using filtered data)")
     
-    # Chart-level filters
+    # NOTE: Chart-level filters
     with st.expander("⚙️ Chart Filters", expanded=False):
         chart2_col1, chart2_col2 = st.columns(2)
         with chart2_col1:
@@ -784,7 +854,7 @@ with tab2:
                 key="chart2_price_filter"
             )
     
-    # Apply chart-level filters
+    # NOTE: Applies chart-level filters, as this was a subtle yet key aspect to ensure proper context.
     chart2_df = filtered_df.copy()
     if chart2_websites:
         chart2_df = chart2_df[chart2_df['website'].isin(chart2_websites)]
@@ -793,7 +863,7 @@ with tab2:
         (chart2_df['price_numeric'] <= chart2_price_filter[1])
     ]
     
-    # Calculate category averages from chart2_df using cleaned categories
+    # NOTE: Calculates category averages from chart2_df using cleaned categories
     group_col = 'category_clean' if 'category_clean' in chart2_df.columns else 'category'
     category_avg = (
         chart2_df[chart2_df['price_numeric'].notna()]
@@ -802,12 +872,12 @@ with tab2:
         .reset_index()
     )
     category_avg.columns = ['category', 'avg_price', 'deal_count']
-    category_avg = category_avg[category_avg['deal_count'] >= 3]  # Only categories with 3+ deals
+    category_avg = category_avg[category_avg['deal_count'] >= 3]  # NOTE: Only categories with 3+ deals
     
     if not category_avg.empty:
         st.success(f"Found {len(category_avg)} categories with 3+ deals in your filtered results")
         
-        # Show as static table
+        # NOTE: this is displayed as a static table at first.
         display_cats = category_avg[['category', 'avg_price', 'deal_count']].copy()
         display_cats['avg_price'] = display_cats['avg_price'].apply(lambda x: f"${x:.2f}")
         display_cats.columns = ['Category', 'Avg Price', 'Deal Count']
@@ -817,25 +887,25 @@ with tab2:
             hide_index=True,
         )
         
-        # Choose first category automatically
+        # NOTE: Chooses first category automatically
         selected_cat = category_avg.iloc[0]['category']
     else:
         st.info("Not enough data for category comparison in your filtered results. Need at least 3 deals per category.")
         selected_cat = None
     
     if selected_cat:
-        # Get deals in this category from chart2_df (using cleaned column when present)
+        # NOTE: Get deals in this category from chart2_df (using cleaned column when present)
         group_col = 'category_clean' if 'category_clean' in chart2_df.columns else 'category'
         cat_deals = chart2_df[(chart2_df[group_col] == selected_cat) & (chart2_df['price_numeric'].notna())].copy()
         cat_avg_price = category_avg[category_avg['category'] == selected_cat]['avg_price'].iloc[0]
         
-        # Sort by date
+        # NOTE: Sorts by date at that point in which they were scraped.
         cat_deals = cat_deals.sort_values('scraped_at')
         
-        # Create comparison chart
+        # NOTE: Comparison chart of my df using plotly for interactivity and clickable links, for the filters.
         fig = go.Figure()
         
-        # Plot individual deals with clickable links
+        # NOTE: Plot individual deals with clickable links
         fig.add_trace(go.Scatter(
             x=cat_deals['scraped_at'],
             y=cat_deals['price_numeric'],
@@ -853,7 +923,7 @@ with tab2:
             hovertemplate='<b>%{customdata[0]}</b><br>Price: $%{y:.2f}<br>Source: %{customdata[2]}<br>Date: %{x}<br><a href="%{customdata[1]}" target="_blank" style="color: #1E90FF;">Open Deal</a><extra></extra>'
         ))
         
-        # Add average line
+        # NOTE: Adds the average line of the products being actively compared
         fig.add_hline(
             y=cat_avg_price,
             line_dash="dash",
@@ -864,7 +934,7 @@ with tab2:
             annotation=dict(font=dict(size=14, color="red"))
         )
         
-        # Add shaded region for "good deals" (below average)
+        # NOTE: Adds a shaded region for "good deals" (below average) to showcase the differentiation which was a key aspect that I've been trying to derive from my charting methods. 
         fig.add_hrect(
             y0=cat_deals['price_numeric'].min() * 0.95,
             y1=cat_avg_price,
@@ -886,7 +956,7 @@ with tab2:
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})
         st.caption("💡 **Tip**: Use the clickable links in the 'Best Deals' section below to open deals")
         
-        # Show statistics
+        # NOTE: Shows active statistics of the numerical averages being compared within my df.
         below_avg = cat_deals[cat_deals['price_numeric'] < cat_avg_price]
         above_avg = cat_deals[cat_deals['price_numeric'] >= cat_avg_price]
         
@@ -901,14 +971,14 @@ with tab2:
         with col3:
             st.warning(f"📊 {len(above_avg)} deals above average ({len(above_avg)/len(cat_deals)*100:.1f}%)")
         
-        # Show best deals (below average) with clickable links
+        # NOTE: Shows best deals (below average) with clickable links
         if not below_avg.empty:
             st.subheader("🏆 Best Deals (Below Average)")
             st.caption("Click any Open link to view the deal")
             best_deals = below_avg.nsmallest(5, 'price_numeric')[['title', 'price_numeric', 'website', 'scraped_at', 'link']].copy()
             best_deals['scraped_at'] = best_deals['scraped_at'].dt.strftime('%Y-%m-%d')
             
-            # Create clickable links column
+            # NOTE: Creates clickable links as a column
             for idx, row in best_deals.iterrows():
                 col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
                 with col1:
@@ -923,7 +993,6 @@ with tab2:
     else:
         st.info("Not enough data for category comparison. Need at least 3 deals per category.")
 
-# Move function OUTSIDE tab to prevent re-rendering spinner
 @st.cache_data(ttl=600)  # Cache for 10 minutes
 def get_price_drops_from_links(links: tuple):
     """
@@ -936,7 +1005,8 @@ def get_price_drops_from_links(links: tuple):
         return pd.DataFrame()
     
     conn = sqlite3.connect(str(DB_PATH))
-    # Create placeholders for SQL IN clause
+    # NOTE: Creates placeholders for SQL IN clause, (this sql statement was created with the assistance of an LLM to ensure proper structure and logic for my price drop calculations, as I kept running into various edge cases previously that were tricky to manually resolve.)
+    # NOTE: Need to pass links twice (for both IN clauses)
     placeholders = ','.join(['?'] * len(links))
     
     price_drops_query = f"""
@@ -999,17 +1069,18 @@ def get_price_drops_from_links(links: tuple):
         ORDER BY drop_percent DESC
         LIMIT 20
     """
-    # Need to pass links twice (for both IN clauses)
+    # NOTE: Need to pass links twice (for both IN clauses)
     drops = pd.read_sql(price_drops_query, conn, params=links + links)
     conn.close()
     return drops
 
 
-# NOTE: Complete integration of my ML Model and Script 
-# NOTE: ML FEATURE PREPARATION (22 features to match new Model that I created)
+# NOTE: Complete integration of my ML Model and Script -
+# NOTE: ML FEATURE PREPARATION (24 features to match new Model that I created, data leakage was a major issue at first, however, my joblib model handles this substancially better now with the overhauls that I've added)
+# NOTE: In the future, I am going to add a predictive aspect to price considerations as of right now, my model is not structured nor accomondating of that core feature that I want to add in the future.
 def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Prepare 22 features
+     24 features are being used across the board now
     
     Improvements:
     - Log-scaled times_seen (reduces dominance)
@@ -1022,7 +1093,7 @@ def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
     
     df2 = source_df.copy()
 
-    # Ensures datetime is included and properly parsed
+    # NOTE: Ensures datetime is included and properly parsed
     if 'scraped_at' in df2.columns:
         df2['scraped_at'] = pd.to_datetime(df2['scraped_at'], errors='coerce')
     else:
@@ -1061,7 +1132,7 @@ def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
     df2['website_slickdeals'] = website_l.str.contains('slickdeals', na=False).astype(int)
     df2['website_newegg'] = website_l.str.contains('newegg', na=False).astype(int)
 
-    # Category indicators (5 categories)
+    # NOTE: Category indicators (5 categories)
     category_series = df2.get('category_clean') if 'category_clean' in df2.columns else df2.get('category')
     cat_l = category_series.astype(str).str.lower() if category_series is not None else pd.Series([''] * len(df2))
     df2['category_gaming'] = cat_l.str.contains('gaming|game|gpu|video card|graphics', na=False).astype(int)
@@ -1070,18 +1141,18 @@ def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
     df2['category_electronics'] = cat_l.str.contains('electronics|tech|audio|headphone|speaker|tablet', na=False).astype(int)
     df2['category_computer_parts'] = cat_l.str.contains('cpu|processor|motherboard|memory|ram|ssd|hdd|drive|parts', na=False).astype(int)
 
-    # NOTE: REDUCED Temporal features (removed hour/day_of_week to prevent overfitting)
+    # NOTE: REDUCED Temporal features (removed hour/day_of_week to prevent overfitting) as this was causing major issues for my model in interpretability.
     df2['month'] = df2['scraped_at'].dt.month.fillna(1).astype(int)
     dow = df2['scraped_at'].dt.dayofweek.fillna(0).astype(int)
     df2['is_weekend'] = dow.isin([5, 6]).astype(int)
 
-    # Historical price features (using link to match training script)
+    # NOTE: Historical price features (using link to match training script) as this was a key aspect to ensure proper alignment with the model training.
     if 'link' in df2.columns:
-        # Times seen - CRITICAL FIX: Use log scaling
+        # Times seen - uses log scaling to reduce overfitting for the feature importance as I kept having issues with this being an extremely dominant feature in terms of importance
         df2['times_seen'] = df2.groupby('link')['link'].transform('count').fillna(1).astype(int)
-        df2['times_seen_log'] = np.log1p(df2['times_seen'])  # Log-scaled version
+        df2['times_seen_log'] = np.log1p(df2['times_seen'])  # NOTE: Log-scaled version
         
-        # Price statistics per link (matching training logic)
+        # NOTE: Price statistics per link (matching training logic)
         link_group = df2.groupby('link')['price_numeric']
         price_mean = link_group.transform('mean').replace(0, 1e-6)
         price_min = link_group.transform('min').replace(0, 1e-6)
@@ -1092,7 +1163,7 @@ def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
         df2['price_range'] = (price_max - price_min).fillna(0.0)
         df2['price_std'] = link_group.transform('std').fillna(0.0)
         
-        # Recent trend (price change from previous scrape)
+        # NOTE: Recent trend (price change from previous scraped session) - sorted by link and scraped_at
         df2 = df2.sort_values(['link', 'scraped_at'])
         df2['recent_trend'] = df2.groupby('link')['price_numeric'].diff().fillna(0.0)
     else:
@@ -1103,10 +1174,10 @@ def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
         df2['price_std'] = 0.0
         df2['recent_trend'] = 0.0
     
-    # Interaction terms (capture deal "sweet spots")
+    # NOTE: Interaction terms (capture deal "sweet spots") - created with the assistance of an LLM to ensure proper structure and logic for these interaction terms, just making a note of that here.
     df2['discount_x_price_comp'] = df2['discount_percent'] * (2 - df2['price_vs_min'])
     
-    # Hot category deal (popular category + good price)
+    # NOTE: Hot category deal (popular category + good price)
     if cat_col in df2.columns:
         df2['category_volume'] = df2.groupby(cat_col)['link'].transform('count')
         df2['hot_category_deal'] = (
@@ -1119,7 +1190,7 @@ def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
     # NOTE: Simplistic features, not completely enclusive to the total capabilities of the model, or the capture of all possible metrics from my webscrapers so far. 
     # NOTE: Will update in future iterations, to accomondate for additional categories as I continue to webscrap. 
 
-    # Feature list (22 features)
+    # NOTE: Feature list (24 features) -- the most updated with what I've added as a discrete features for the ML Model
     feature_cols = [
         # Price features (6)
         'price_numeric', 'discount_percent', 'has_discount', 'discount_tier', 'price_bucket', 'price_percentile',
@@ -1135,7 +1206,7 @@ def prepare_ml_features(source_df: pd.DataFrame) -> pd.DataFrame:
         'discount_x_price_comp', 'hot_category_deal'
     ]
 
-    # Ensure all features exist
+    # NOTE: QoL Check that I addded to ensure all features actually exist before being populated into the final dataframe.
     for c in feature_cols:
         if c not in df2.columns:
             df2[c] = 0.0
@@ -1147,7 +1218,7 @@ with tab3:
     st.subheader("🔥 Biggest Price Drops")
     st.caption("Deals that have decreased in price since first scraped (from your filtered results)")
     
-    # Chart-level filters
+    # NOTE: Chart-level filters, utilized an LLM to review and make to ensure that this was featured engineered correctly.
     with st.expander("⚙️ Chart Filters", expanded=False):
         chart3_col1, chart3_col2, chart3_col3 = st.columns(3)
         with chart3_col1:
@@ -1176,26 +1247,26 @@ with tab3:
                     key="chart3_website_filter"
                 )
     
-    # Apply chart-level filters
+    # NOTE: chart-level filters
     chart3_df = filtered_df.copy()
     if 'chart3_categories' in locals() and chart3_categories:
         chart3_df = chart3_df[chart3_df['category_clean'].isin(chart3_categories)]
     if 'chart3_websites' in locals() and chart3_websites:
         chart3_df = chart3_df[chart3_df['website'].isin(chart3_websites)]
     
-    # Get unique links from chart3_df
+    # NOTE: Retrieves unique links from chart3_df
     candidate_links = tuple(chart3_df['link'].dropna().unique())
     drops = get_price_drops_from_links(candidate_links)
     
-    # Filter by minimum drop percentage
+    # NOTE: Filters by minimum drop percentage
     if not drops.empty and min_drop_pct > 0:
         drops = drops[drops['drop_percent'] >= min_drop_pct]
     
     if not drops.empty:
         st.success(f"Found {len(drops)} price drops matching your criteria")
-        # Create bar chart of price drops
+        # NOTE: Creates a very simplistic bar chart of price drops as this was an item that I wanted to showcase on a temporal basis.
         fig = go.Figure()
-        # Attach customdata with link and full title to support click selection
+        # NOTE: Attaches customdata with link and full title to support click selection
         fig.add_trace(go.Bar(
             x=drops['drop_percent'],
             y=drops['title'].str[:40] + "...",
@@ -1226,7 +1297,7 @@ with tab3:
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': True})
         st.caption("💡 **Tip**: Scroll down to the table below and click the Open links to view deals")
         
-        # Show detailed price drop table with easy-click links
+        # NOTE: Shows detailed price drop table with easy-click links -- also used an LLM to help optimize the code for this section.
         st.subheader("📋 Price Drop Details")
         st.caption("⬇️ Click any **Open** link in the rightmost column to view that deal")
         
@@ -1291,7 +1362,7 @@ with tab4:
             fig.update_layout(height=400, hovermode='x unified')
             st.plotly_chart(fig, use_container_width=True)
 
-        # Day-of-week distribution
+        # NOTE: Day-of-week distribution
         base_timeline['day_of_week'] = base_timeline['scraped_at'].dt.day_name()
         dow_counts = base_timeline['day_of_week'].value_counts()
         if not dow_counts.empty:
@@ -1310,7 +1381,8 @@ with tab4:
             fig.update_layout(height=300)
             st.plotly_chart(fig, use_container_width=True)
 
-        # Day vs Hour heatmap for interactive discovery
+        # NOTE: Day vs Hour heatmap for interactive discovery
+        # NOTE: This was added as a final touch to showcase my data visualization skills, assistance from an AI model was used to help generate this code snippet
         try:
             st.subheader("⏱️ Day × Hour Heatmap")
             heat_df = base_timeline.copy()
@@ -1335,7 +1407,7 @@ with tab5:
     st.title("🤖 AI-Powered Deal Predictions")
     st.caption("Use optimized ML model to predict deal quality (22 features)")
     
-    # Model file input
+    # NOTE: Model file input section
     model_file = st.text_input(
         "📁 Model filename (in project root):",
         value="deal_predictor_optimized_20251202_171012.joblib",
@@ -1387,7 +1459,7 @@ with tab5:
         with st.spinner(f"Predicting {len(valid_df)} deals..."):
             X = prepare_ml_features(valid_df)
 
-            # Validate feature shape against model (roughly to catch mismatches)
+            # NOTE: Validates feature shape against model (roughly to catch mismatches)
             n_in = getattr(model, 'n_features_in_', None)
             if n_in is not None and X.shape[1] != int(n_in):
                 st.error(f"Model expects {int(n_in)} features but received {X.shape[1]}.")
@@ -1399,7 +1471,7 @@ with tab5:
 
         st.success(f"✅ Predicted {len(valid_df)} deals!")
 
-        # Show stats of the ML Scores in respect to their active score from 0-100; categorize into Excellent, Good, Fair, Poor
+        # NOTE: Shows stats of the ML Scores in respect to their active score from 0-100; categorize into Excellent, Good, Fair, Poor based off of my features that aligned to basically showcase the overall deal quality of a deal.
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             excellent = (valid_df['ml_score'] >= 75).sum()
@@ -1423,7 +1495,7 @@ with tab5:
         fig.update_layout(height=350)
         st.plotly_chart(fig, use_container_width=True)
 
-        # Top 10 recommended deals based on the aggregated score from my ML Model.
+        # NOTE: this displays the Top 10 recommended deals based on the aggregated score from my ML Model.
         st.subheader("🏆 Top 10 Recommended Deals")
         top10 = valid_df.nlargest(10, 'ml_score').copy()
 
@@ -1533,7 +1605,7 @@ else:
 # NOTE: Footer with status for the session view
 st.markdown("---") 
 
-# Status information which will be rendered at the bottom of my streamlit app
+# NOTE: Status information which will be rendered at the bottom of my streamlit app
 col1, col2, col3 = st.columns(3)
 
 with col1:

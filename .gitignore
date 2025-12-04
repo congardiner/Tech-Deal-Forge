@@ -26,6 +26,7 @@ wheels/
 
 # Streamlit
 .streamlit/secrets.toml
+streamlit_test.py
 
 # IDE
 .vscode/
