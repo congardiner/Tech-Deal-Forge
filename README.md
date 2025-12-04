@@ -1,5 +1,5 @@
 # Tech Deal Forge - Webscraping Platform for Consumer Technology Deal Tracking
-🔥 **Real-time tech deals aggregator and price tracker**
+**Real-time tech deals aggregator and price tracker**
 [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://senior-project---tech-deal-forge.streamlit.app/)
 
 ## Overview of the Project 
@@ -33,9 +33,6 @@ Tech Deal Forge reduces the time, stress, and uncertainty involved in tech-deal 
 ## Streamlit Dashboard
 
 ![Tech Deal Forge Dashboard](images/Misc%20Images/tech-deal-forge-dashboard.png)
-
-## 🚀 Live Demo
-Visit the live dashboard: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://senior-project---tech-deal-forge.streamlit.app/)]
 
 ## Local Installation
 
@@ -77,12 +74,6 @@ Senior-Project-Tech-Deal-Forge/
 └── requirements.txt            # Python dependencies
 ```
 
-## 🔄 Updating Data
-The dashboard displays cached data that is refreshed every 60 seconds. To manually update:
-1. Run scrapers: `python run_all_scrapers.bat`
-2. Or use the "🔄 Refresh Data" button in the sidebar
-
-
 ## Machine Learning Model
 
 A lightweight regression model predicts potential price drops based on historical trends. It uses features like:
@@ -95,7 +86,7 @@ A lightweight regression model predicts potential price drops based on historica
 
 This is a RandomForestRegressor model trained on historical price data to provide an analytical score indicating deal quality, helping users decide whether to buy now or wait, based on predicted future prices. 
 
-[![ML Model Performance](images/Misc%20Images/ml-model-performance.png)]
+![RFR ML Model Performance](images/Misc%20Images/predictions_ml_rf_deal_forge_12-02-2025.png)
 
 ## Limitations of my Project & Disclaimers
 
@@ -117,6 +108,7 @@ This is a RandomForestRegressor model trained on historical price data to provid
 Scrapers run at scheduled intervals, so:
   - Prices may lag behind real-time market changes.
   - Sudden promotions or flash deals may not always be captured immediately.
+  - Unfortunately, the capture net of what is feasible hasn't been scaled out as only 2 active webscrapers serves as an active delimiter to capturing 'all deals' or categorical types.
 
 4. **Ethical & Legal Scraping Boundaries**
 - The project follows ethical scraping principles, but:
@@ -143,7 +135,8 @@ Scrapers run at scheduled intervals, so:
 - There is no user authentication or personalization features at this time, which would be ideal to curate deals on a per user basis. This is a feature that is planned for future development, and will be added in later versions.
 - Cloud-Database Migration will take place on a future point in time as the service scales, as this will be necessary in order to keep the continuity of project alive and well; enabling a robust system of interchanges on an automated, zero downtime basis. 
 - Image(s) of specified items and products has been heavily requested from the webscraped pipeline, storage requirements currently restrict this addition, however, this is currently being researched for viable options.
-- Enhanced charting methods alongside with a model adaptation to accomondate for price drops and predictions in this respect is underway, underfitting and data leakage is currently an active restriction as there is not enough training data to make a proper assessment at this time of writing. 
+- Enhanced charting methods alongside with a model adaptation to accomondate for price drops and predictions in this respect is underway, underfitting and data leakage is currently an active restriction as there is not enough training data to make a proper assessment at this time of writing.
+- Additional webscrapers to target specific niches to enhance overall threshold of consumer technology deal assessments, at this time of writing, there are several webscrapers that are in active development for a future slated release.
 
 ## **Disclaimer** 
 
