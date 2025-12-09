@@ -99,7 +99,7 @@ def extract_products_from_json_ld(html_content):
             print("  Warning: Empty JSON-LD content, skipping")
             continue
         
-        # Validate JSON structure before parsing
+        # NOTE: Its a JSON structure cleanser, that is used before officially parsing, to avoid common pitfalls.
         json_str_clean = json_str.strip()
         if not json_str_clean.startswith(('{', '[')):
             print(f"  Warning: Invalid JSON-LD format (doesn't start with {{ or [)")
@@ -120,7 +120,7 @@ def extract_products_from_json_ld(html_content):
             if not product_data:
                 continue
             
-            # Validate required fields
+            # NOTE:validate check that ensures that data was populated in the required fields
             if not product_data.get('name') or not product_data.get('url'):
                 print(f"  Warning: JSON-LD product missing name or URL")
                 continue
@@ -136,16 +136,16 @@ def extract_products_from_json_ld(html_content):
 
 def parse_graphql_responses(html_content):
     """
-    Best Buy uses GraphQL. Extract product data from Apollo/GraphQL responses
-    embedded in the page HTML. This was my workaround to get reliable data, as otherwise traditional DOM Methods were not effective.
+    Best Buy uses GraphQL. Extract product data from Apollo/GraphQL responses -- this was from my research and observations while trying to understand how to webscrape Best Buy by using what was
+    embedded in the page HTML. This was my workaround to get reliable data, as otherwise traditional DOM Methods were not effective at all. 
     """
     products = []
     
     # NOTE: Pattern to match the GraphQL product data structure
     # Look for Product objects with skuId, then find the closest name and price in a window around it
-    # Also extract regularPrice to calculate discounts
+    # Also extract regularPrice to calculate discounts as bestbuy is really good at advertising their sale prices without context.
     
-    # First, find all Product blocks with skuId
+    # NOTE: First, using regex, I wanted to find all Product blocks with skuId, as this was the best way to pair them together.
     sku_pattern = r'"__typename":"Product"[^{}]{0,200}?"skuId":"([^"]+)"'
     sku_matches = list(re.finditer(sku_pattern, html_content))
     
@@ -184,7 +184,7 @@ def parse_graphql_responses(html_content):
         price_str = price_match.group(1)
         regular_price_str = regular_price_match.group(1) if regular_price_match else None
         
-        # NOTE: Validate extracted data
+        # NOTE: Validates the extracted data, at least by pairing it, its otherwise not super useful but a simple quality of life check / assessment. 
         if not title or not price_str:
             continue
         
@@ -206,7 +206,7 @@ def parse_graphql_responses(html_content):
         original_price = None
         discount_percent = None
         
-        # Calculate discount if regular price exists and is higher than current price
+        # NOTE: Calculates discount if regular price exists and is higher than current price, sort of works on the targeted cards, but not always perfect.
         if regular_price_str and regular_price_str.replace('.', '', 1).isdigit():
             regular_price_val = float(regular_price_str)
             if regular_price_val > current_price:
@@ -317,7 +317,7 @@ def scrape_bestbuy_deals_api(driver: Driver, url: str):
     elif 'tv' in url_l:
         category = 'TVs'
     
-    # NOTE: Convert to deal format
+    # NOTE: Convert to deal format, stored in a list, filtering out incomplete entries.
     deals = []
 
 
@@ -371,7 +371,7 @@ def main():
             print(f"Failed session: No deals from this URL")
             failed_urls.append(url[:80])
     
-
+    # NOTE: Created a summary of the scraping session with vitals that I could reason through that are impactful to quicking assessing data quality.
 
     print(f"Summary: {successful_urls}/{len(BESTBUY_URLS)} URLs successful")
     print(f"Total deals extracted: {len(all_deals)}")

@@ -10,7 +10,7 @@ import logging
 # NOTE: REGEX was used extensively as this was a huge part of the data cleaning and validation process.
 # NOTE: I've created a ton of different edge cases to ensure that the data is clean and standardized for production use, especially with price extraction and validation, as this was a repeat issue that I kept running into.
 # NOTE: In addition to this, I've tried my best to ensure that all rows are properly timestamped for historical tracking, which is a key requirement for this project, as I wanted to build and track price trends over time...
-# NOTE: 
+# NOTE: Data pipeline class for processing and storing deal data, with historical tracking and filtering capabilities, with comments enclosed where applicable for clarity.
 
 
 
@@ -23,11 +23,11 @@ class DealsDataPipeline:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
         
-        # Setup logging
+        # NOTE: Setup logging for the sqlite database operations
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
         
-        # SQLite database configuration
+        # NOTE: SQLite database configuration (now initialized in my class constructor)
         self.db_path = self.output_dir / "deals.db"
         self.logger.info(f"Using SQLite database: {self.db_path}")
         
@@ -62,7 +62,7 @@ class DealsDataPipeline:
             )
         """)
         
-        # Create indexes for common query patterns
+        # NOTE: Creates indexes for common query patterns (OLD logic retained for clarity, as I've revised this multiple times)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_price ON deals(price_numeric)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_category ON deals(category)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_website ON deals(website)")
@@ -85,11 +85,11 @@ class DealsDataPipeline:
         # NOTE: Duplicates are intentionally KEPT for historical price tracking
         # Each scrape creates a new entry with timestamp for timeline analysis
         
-        # Clean and standardize titles
+        # NOTE: Cleans and standardize titles as much as possible using some super basic regex statements
         df['title'] = df['title'].str.strip()
         df['title'] = df['title'].str.replace(r'\s+', ' ', regex=True)
         
-        # Handle price columns - support both old 'price' and new 'price_text'/'price_numeric' format
+        # NOTE: Handles price columns - support both old 'price' and new 'price_text'/'price_numeric' format
         if 'price' in df.columns and 'price_text' not in df.columns:
             df['price_numeric'] = df['price'].apply(self._extract_numeric_price)
             df['price_text'] = df['price']
@@ -97,18 +97,18 @@ class DealsDataPipeline:
             df['price_numeric'] = df['price_text'].apply(self._extract_numeric_price)
         
 
-        # Clean categories
+        # NOTE: Cleans the created using some simple renaming via regex statements again against categories
         if 'category' in df.columns:
             df['category'] = df['category'].str.replace('https://slickdeals.net/', '', regex=False)
             df['category'] = df['category'].str.replace('/', '', regex=False)
             df['category'] = df['category'].str.replace('?', '', regex=False)
             df['category'] = df['category'].str.strip()
         
-        # Add scraping timestamp if not present
+        # NOTE: I made a way to add a scraping timestamp if not present
         if 'scraped_at' not in df.columns:
             df['scraped_at'] = datetime.now().isoformat()
         
-        # Filter out deals with very short titles (likely errors)
+        # NOTE: Filters out deals with very short titles (likely errors)
         original_count = len(df)
         df = df[df['title'].str.len() > 10]
         removed = original_count - len(df)
@@ -124,13 +124,13 @@ class DealsDataPipeline:
         if not price_text or pd.isna(price_text):
             return None
         
-        # Remove currency symbols and extract numbers
+        # NOTE: Removes currency symbols and extracts numbers using regex, no issues to report in my edge cases.
         price_clean = re.sub(r'[^\d.,]', '', str(price_text))
         
         if not price_clean:
             return None
         
-        # Handle comma-separated thousands
+        # NOTE: Handles comma-separated thousands, ensuring proper decimal handling, as this was a primary issue I kept running into.
         if ',' in price_clean and '.' in price_clean:
             # Format: 1,299.99
             price_clean = price_clean.replace(',', '')
@@ -144,7 +144,7 @@ class DealsDataPipeline:
         
         price_value = float(price_clean)
         
-        # NOTE: Sanity check: reject unrealistic prices
+        # NOTE: Sanity check: reject unrealistic prices, there were a few ads that for some reason were initially scraped with prices like $9999999.99)
         if price_value <= 0 or price_value > 1000000:
             return None
         
@@ -173,7 +173,7 @@ class DealsDataPipeline:
                 filters['categories'] = [filters['categories']]
             filtered_df = filtered_df[filtered_df['category'].isin(filters['categories'])]
         
-        # NOTE: Keyword filter in title
+        # NOTE: Keyword filter in title, supports multiple keywords, 
         if 'keywords' in filters and filters['keywords']:
             keywords = filters['keywords']
             if isinstance(keywords, str):
@@ -315,14 +315,16 @@ class DealsDataPipeline:
                 'summary': {'total_deals': 0}
             }
         
-        # NOTE: Apply filters if provided
+        # NOTE: Apply filters if provided (before export of the data)
         if filters:
             df = self.filter_deals(df, **filters)
         
         # NOTE: Export to all formats, which as of right now is just csv and to my mysql-lite database.
         results = {}
         
-        # NOTE: CSV export with optional prefix
+        # NOTE: CSV export with optional prefix applied to the filename, its a simple way to know where when the file itself was populated and from which source.
+        # NOTE: It also helps with versioning and historical tracking of the data as well, as ML models and data analysis can be done on specific datasets after running my export from the export_deals_for_ml.py file.
+        # NOTE: Timestamp is included in the filename for uniqueness and historical tracking as well, just an additional note for clarification.
         csv_filename = None
         if csv_prefix:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -334,7 +336,8 @@ class DealsDataPipeline:
         rows_added = self.to_database(df)
         results['database_rows_added'] = rows_added
         
-        # NOTE: Summary statistics
+        # NOTE: Summary statistics as well as showcasing some basic analysis of the data, with min/max/avg prices and counts by category and website.
+        # NOTE: handling for nan values in price_numeric column to avoid errors during summary statistics calculation.
         results['summary'] = {
             'total_deals': len(df),
             'deals_with_prices': int(df['price_numeric'].notna().sum()),
@@ -350,6 +353,6 @@ class DealsDataPipeline:
         return results
 
 if __name__ == "__main__":
-    # NOTE: Production test of the data pipeline
+    # NOTE: Production test of the data pipeline has been working for several months now, no issues to report otherwise, occassionally, there is an issue where an item that was webscraped is incorrectly paired, (usually bestbuy) by way of an ad, but otherwise, this is the cleanest solution that I've devised.
     pipeline = DealsDataPipeline()
     print("Data pipeline compiled successfully")

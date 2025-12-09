@@ -1,5 +1,5 @@
 """
-Simple Streamlit Dashboard for the 'Tech Deal Forge'
+Streamlit Dashboard for Tech Deal Forge
 
 My intent with this project has been to streamline the process of keeping things organized, basic, and informative with the data that I've collected.
 
@@ -1298,8 +1298,8 @@ with tab3:
         st.caption("💡 **Tip**: Scroll down to the table below and click the Open links to view deals")
         
         # NOTE: Shows detailed price drop table with easy-click links -- also used an LLM to help optimize the code for this section.
-        st.subheader("📋 Price Drop Details")
-        st.caption("⬇️ Click any **Open** link in the rightmost column to view that deal")
+        st.subheader("Price Drop Details")
+        st.caption("Click any **Open** link in the rightmost column to view that deal")
         
         for idx, row in drops.head(10).iterrows():
             with st.container():
@@ -1410,7 +1410,7 @@ with tab5:
     # NOTE: Model file input section
     model_file = st.text_input(
         "📁 Model filename (in project root):",
-        value="deal_predictor_optimized_20251202_171012.joblib",
+        value="deal_predictor_optimized_20251209_055917.joblib",
         key="ml_model_file"
     )
     
