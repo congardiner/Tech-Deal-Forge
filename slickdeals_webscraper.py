@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from botasaurus.browser import browser, Driver
 from botasaurus.soupify import soupify
 from data_pipeline import DealsDataPipeline
@@ -61,6 +60,7 @@ EXCLUDED_DOMAINS = [
 ]
 
 
+# NOTE: Function to determine if a link should be excluded based on known ad/tracking domains, as I kept getting instances where this just strictly needed to be blocked as a default moving forward.
 def should_exclude_link(url: str) -> bool:
     if not url:
         return True
@@ -70,6 +70,8 @@ def should_exclude_link(url: str) -> bool:
     if url.startswith("javascript:") or url.startswith("mailto:"):
         return True
     return False
+
+# NOTE: mailto and javascript links are also excluded as they do not point to actual product pages.
 
 
 def extract_price_details(price_text: str | None) -> dict[str, float | str | None]:
@@ -87,7 +89,7 @@ def extract_price_details(price_text: str | None) -> dict[str, float | str | Non
 
     clean_text = price_text.strip()
     
-    # Extract all dollar amounts from the text
+    # NOTE: Extracts all dollar amounts from the text, assumes USD by default. 
     price_matches = re.findall(r"\$(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)", clean_text)
     
     if not price_matches:
@@ -98,22 +100,22 @@ def extract_price_details(price_text: str | None) -> dict[str, float | str | Non
             "discount_percent": None,
         }
     
-    # Convert to floats, removing commas
+    # NOTE: Convert to floats, removing commas if they were in place
     prices = [float(p.replace(",", "")) for p in price_matches]
     
-    # Determine current price vs original price
-    # Logic: The LARGER number is typically the original price when "Save" or "Was" appears
+    # NOTE: Logic: The LARGER number is typically the original price when "Save" or "Was" appears -- 
+    # NOTE: as slickdeals doesn't do a good job at keeping a historical record of price trends or drops, as sometimes this is skewed or misrepresented by staff who are intently promoting products for sponsorships.
     price_numeric = None
     original_price = None
     
     if len(prices) == 1:
-        # Only one price found - use as current price
+        # NOTE: Only one price found - use as current price - assume no discount info as slickdeals just omits or doesn't include it unless from the 90 day chart. 
         price_numeric = prices[0]
     elif len(prices) >= 2:
-        # Multiple prices - need to determine which is which
+        # NOTE: Multiple prices - need to determine which is which
         if "save" in clean_text.lower() or "was" in clean_text.lower():
-            # Pattern: "Save $X • Was $Y" or similar
-            # The larger number is the original price
+            # NOTE: Pattern: "Save $X • Was $Y" or similar
+            # NOTE: The larger number is the original price, or at least it should be if this context cue from the site is correct.
             prices_sorted = sorted(prices, reverse=True)
             original_price = prices_sorted[0]  # Largest = original
             price_numeric = prices_sorted[1] if len(prices_sorted) > 1 else prices_sorted[0]
@@ -123,13 +125,12 @@ def extract_price_details(price_text: str | None) -> dict[str, float | str | Non
             price_numeric = prices[0]
             original_price = prices[1]
     
-    # Validate: current price should be less than original price
+    # NOTE: current price should be less than original price
     if price_numeric and original_price:
         if price_numeric > original_price:
-            # Swap them - we got it backwards
             price_numeric, original_price = original_price, price_numeric
         
-        # Sanity check: reject if discount > 95% (likely data error)
+        # NOTE: Sanity check: reject if discount > 95% (likely data error)
         potential_discount = ((original_price - price_numeric) / original_price) * 100
         if potential_discount > 95:
             print(f"  Warning: Suspicious {potential_discount:.1f}% discount detected, rejecting price data")
@@ -141,12 +142,12 @@ def extract_price_details(price_text: str | None) -> dict[str, float | str | Non
                 "discount_percent": None,
             }
     
-    # Calculate discount percentage
+    # NOTE: Calculates discount percentage (if applicable as this has been a key issue in the past.)
     discount_percent = None
     if price_numeric and original_price and original_price > price_numeric:
         discount_percent = round(((original_price - price_numeric) / original_price) * 100, 1)
     
-    # If no discount calculated, try to extract from text
+    # NOTE: If no discount calculated, try to extract from text (simple boolean logic for redundancy)
     if not discount_percent:
         discount_match = re.search(r"(\d+)%\s*off", clean_text, re.IGNORECASE)
         if discount_match:
@@ -168,16 +169,18 @@ def extract_rating_info(card) -> tuple[float | None, int | None]:
     rating_elem = card.select_one('[data-test="bp-c-card-reviewRating"]') or card.select_one(
         ".bp-c-rating"
     )
+
     if rating_elem:
         rating_text = rating_elem.get_text(strip=True)
         rating_match = re.search(r"(\d+\.?\d*)", rating_text)
         if rating_match:
             rating_value = float(rating_match.group(1))
-            # Validate rating is in reasonable range (0-5)
+            # NOTE: Validates if the rating is in reasonable range (0-5), as slickdeals uses a 5-star system, or the upvotes, but I haven't specifically sought to accomondate for upvotes or downvotes but that would be something to add in the future. 
+            # NOTE: Just making a note to revisit the upvote/downvote system later on.
             if 0 <= rating_value <= 5:
                 rating = rating_value
             else:
-                print(f"  Warning: Invalid rating {rating_value}, ignoring")
+                print(f"Invalid rating {rating_value}.")
 
     reviews_elem = card.select_one('[data-test="bp-c-card-reviewCount"]')
     if reviews_elem:
@@ -189,7 +192,8 @@ def extract_rating_info(card) -> tuple[float | None, int | None]:
     return rating, reviews
 
 
-
+# NOTE: Extracts image URL from deal card, handling lazy-loaded images as well; but for storage purposes, I haven't implemented image downloading or caching yet.
+# NOTE: Otherwise my function just returns the direct image URL for reference.
 def extract_image_url(card) -> str | None:
     for selector in [
         "img[data-src]",
@@ -220,6 +224,8 @@ def extract_description(card) -> str | None:
     text = re.sub(r"\s+", " ", desc_elem.get_text(strip=True))
     return text[:250] if text else None
 
+# NOTE: Simple category extraction from URL structure, as slickdeals uses URL slugs to denote categories.
+# NOTE: Sometimes my pipeline doesn't catch the category correctly so this is a fallback, otherwise I've manually mapped categories when this occurs and doesn't work.
 
 def get_category_from_url(url: str) -> str:
     slug = url.split("//", 1)[-1]
@@ -256,7 +262,7 @@ def scrape_tech_deals_with_pipeline(driver: Driver, data=None):
                 excluded_count += 1
                 continue
 
-            # Build best-effort title
+            # NOTE: Assembles a best-effort title from multiple attributes, most of the time it works, but sometimes needs fallback logic
             title_text = (
                 title_link.get("title")
                 or title_link.get("aria-label")
@@ -324,9 +330,9 @@ def main():
     pipeline = DealsDataPipeline(output_dir=str(project_root / "output"))
 
     if args.no_scrape:
-        # If skipping scraping, try to proceed without loading a JSON cache.
-        # We'll just exit early since there's no fresh data to process.
-        print("no-scrape specified and no cached CSV loader implemented. Exiting.")
+        # NOTE: If skipping scraping, try to proceed without loading a JSON cache.
+        # NOTE: Just exits early since there's no fresh data to process. (failsafe)
+        print("no-scrape specified and no cached CSV loader implemented. Exiting the program now.")
         return
     else:
         deals = scrape_tech_deals_with_pipeline()
@@ -352,8 +358,7 @@ def main():
 
     results = pipeline.process_deals(deals, csv_prefix="slickdeals", **filter_args)
 
-    print("-" * 60)
-    print("Processing Results")
+    print()
     summary = results["summary"]
     print(f"Total deals: {summary['total_deals']}")
     print(f"Deals with prices: {summary['deals_with_prices']}")
@@ -366,8 +371,6 @@ def main():
 
     if "csv" in results:
         print(f"CSV saved to: {results['csv']}")
-    if "parquet" in results:
-        print(f"Parquet: {results['parquet']}")
     if "database_rows_added" in results:
         print(f"Database: {results['database_rows_added']} rows added")
 

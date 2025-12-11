@@ -11,7 +11,6 @@ from pathlib import Path
 # NOTE: Best Buy Deal URLs (ie, tested and validated over the span of my project) (some of these may be seasonal or change over time though overtime)
 BESTBUY_URLS = [
     "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat1591132221892&id=pcat17071&qp=currentoffers_facet=Current+Deals%7EOn+Sale&st=pcmcat1591132221892_categoryid%24abcat0500000",
-    "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat1591132221892&id=pcat17071&qp=currentoffers_facet%3DCurrent+Deals%7EBlack+Friday+Deal&st=pcmcat1591132221892_categoryid%24abcat0500000",
     "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat1720706651516&id=pcat17071&qp=currentoffers_facet%3DSeasonal+Savings%7EBlack+Friday+Deal&st=pcmcat1720706651516_categoryid%24pcmcat156400050037",
     "https://www.bestbuy.com/site/pc-gaming/gaming-laptops/pcmcat287600050003.c?id=pcmcat287600050003",
     "https://www.bestbuy.com/site/searchpage.jsp?browsedCategory=pcmcat138500050001&id=pcat17071&qp=currentoffers_facet%3DCurrent+Deals%7EOn+Sale%5Econdition_facet%3DCondition%7ENew&st=categoryid%24pcmcat138500050001",
