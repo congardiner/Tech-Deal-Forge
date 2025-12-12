@@ -13,7 +13,6 @@ import logging
 # NOTE: Data pipeline class for processing and storing deal data, with historical tracking and filtering capabilities, with comments enclosed where applicable for clarity.
 
 
-
 class DealsDataPipeline:
     """
     Stores data in SQLite with support for historical tracking and filtering, which I've used extensively in my data analysis and reporting, however, this is not a fool-proof system, as I've had constant revisions. Just something to keep in mind. 

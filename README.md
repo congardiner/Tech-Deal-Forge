@@ -68,8 +68,9 @@ Senior-Project-Tech-Deal-Forge/
 ├── streamlit_dashboard.py      # Main dashboard app
 ├── slickdeals_webscraper.py    # SlickDeals scraper
 ├── bestbuy_webscraper.py       # Best Buy scraper
-├── data_pipeline.py            # Data processing pipeline
+├── data_pipeline.py            # Data processing pipeline, used by my webscrapers to cleanse and prepare data for the DB & ML
 ├── deal_predictor              # JOBLIB model file for ML predictions from Google Colab
+├── export_deals_for_ml.py      # Script to export data for ML training *runs with bat file*
 ├── output/
 │   └── deals.db                # SQLite database
 ├── ML_Model/
