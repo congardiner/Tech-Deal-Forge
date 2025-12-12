@@ -69,8 +69,13 @@ Senior-Project-Tech-Deal-Forge/
 ├── slickdeals_webscraper.py    # SlickDeals scraper
 ├── bestbuy_webscraper.py       # Best Buy scraper
 ├── data_pipeline.py            # Data processing pipeline
+├── deal_predictor              # JOBLIB model file for ML predictions from Google Colab
 ├── output/
 │   └── deals.db                # SQLite database
+├── ML_Model/
+│   └── Google_Colab    # Trained ML Model Files & joblib files
+│       └──   deal_predictor.joblib # Trained ML Model
+           └── ML_Script_RTF_Tech_Forge_FA2025.ipynb # Google Colab Notebook
 └── requirements.txt            # Python dependencies
 ```
 
